@@ -1,0 +1,240 @@
+import { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, useWindowDimensions } from "react-native";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { theme } from "@/constants/theme";
+import { spacing } from "@/components/system/spacing"; // Fix: Import path dituntaskan
+
+const API_BASE_URL = "http://127.0.0.1:8000/api";
+
+interface RawOrderItem {
+  id: number;
+  user_id: number;
+  customer_name: string | null;
+  menu_id: number;
+  qty?: number;
+  quantity?: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  menu?: { 
+    name: string;
+    price?: string | number;
+  };
+}
+
+function formatCurrency(value: number) {
+  return `Rp ${value.toLocaleString("id-ID")}`;
+}
+
+// Helper aman untuk membandingkan string tanggal YYYY-MM-DD
+function getCleanDateString(dateInput: string) {
+  if (!dateInput) return null;
+  return dateInput.split(" ")[0]; // Mengambil bagian YYYY-MM-DD saja
+}
+
+export default function AdminReports() {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  const [orders, setOrders] = useState<RawOrderItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reportGenerated, setReportGenerated] = useState(false);
+
+  useEffect(() => {
+    async function loadOrders() {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${API_BASE_URL}/orders`, {
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        const data = await response.json();
+        const orderList = Array.isArray(data) ? data : data.data || [];
+        setOrders(orderList);
+      } catch (error) {
+        console.error("Gagal memuat data laporan bisnis:", error);
+        Alert.alert("Error", "Gagal mengambil data transaksi dari server backend Laravel.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadOrders();
+  }, []);
+
+  // Memfilter order berdasarkan jangkauan tanggal input user
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const orderDateStr = getCleanDateString(order.created_at);
+      if (!orderDateStr) return true;
+
+      if (startDate && orderDateStr < startDate) return false;
+      if (endDate && orderDateStr > endDate) return false;
+      return true;
+    });
+  }, [orders, startDate, endDate]);
+
+  // Melakukan kalkulasi metrik bisnis secara dinamis berdasarkan data terfilter
+  const metrics = useMemo(() => {
+    let totalRevenue = 0;
+    const statusCounts: Record<string, number> = {};
+    const menuRevenue: Record<string, number> = {};
+    
+    // Grouping unik untuk menghitung total pesanan riil (bukan total baris item mentah)
+    const uniqueOrders = new Set<string>();
+
+    filteredOrders.forEach((item) => {
+      // Kelompokkan key order unik berdasarkan tanggal + user_id seperti pada halaman transaksi
+      const rawDate = item.created_at ? item.created_at.split(' ')[0] : "unknown";
+      const groupOrderKey = `${rawDate}_US${item.user_id}`;
+      uniqueOrders.add(groupOrderKey);
+
+      // Kalkulasi pendapatan item saat ini
+      const price = Number(item.menu?.price || (item as any).price || 0);
+      const qty = item.qty || item.quantity || 1;
+      const itemRevenue = price * qty;
+
+      // Tambahkan ke total pendapatan jika statusnya valid/bukan cancelled
+      if (item.status?.toLowerCase() !== "cancelled") {
+        totalRevenue += itemRevenue;
+      }
+
+      // Hitung persebaran status item
+      const statusLabel = item.status || "pending";
+      statusCounts[statusLabel] = (statusCounts[statusLabel] || 0) + 1;
+
+      // Hitung total pendapatan per produk (Best Seller)
+      const menuName = item.menu?.name || `Custom Item (ID: ${item.menu_id})`;
+      menuRevenue[menuName] = (menuRevenue[menuName] || 0) + itemRevenue;
+    });
+
+    const totalOrders = uniqueOrders.size;
+    const avgOrder = totalOrders ? totalRevenue / totalOrders : 0;
+    const bestSeller = Object.entries(menuRevenue)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    return { totalRevenue, totalOrders, avgOrder, statusCounts, bestSeller };
+  }, [filteredOrders]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Menghasilkan data laporan...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Laporan</Text>
+        <Text style={styles.subtitle}>Buat laporan bisnis dari transaksi dan gunakan untuk mendorong keputusan operasional.</Text>
+      </View>
+
+      <Card style={styles.reportCard}>
+        <CardContent style={{ padding: 20 }}>
+          <Text style={styles.sectionHeading}>Jangkauan Laporan</Text>
+          <Text style={styles.fieldLabel}>Tanggal Mulai</Text>
+          <Input placeholder="YYYY-MM-DD" value={startDate} onChangeText={setStartDate} />
+          <Text style={styles.fieldLabel}>Tanggal Akhir</Text>
+          <Input placeholder="YYYY-MM-DD" value={endDate} onChangeText={setEndDate} />
+          <Button
+            title="Buat Laporan"
+            onPress={() => setReportGenerated(true)}
+            style={[styles.generateButton, !isDesktop && { width: '100%' }]}
+          />
+        </CardContent>
+      </Card>
+
+      {reportGenerated ? (
+        <>
+          <View style={[styles.metricsGrid, !isDesktop && { flexDirection: 'column' }]}>
+            <Card style={styles.metricCard}>
+              <CardContent style={{ padding: 16 }}>
+                <Text style={styles.metricLabel}>Pendapatan</Text>
+                <Text style={styles.metricNumber}>{formatCurrency(metrics.totalRevenue)}</Text>
+              </CardContent>
+            </Card>
+            <Card style={styles.metricCard}>
+              <CardContent style={{ padding: 16 }}>
+                <Text style={styles.metricLabel}>Total Pesanan</Text>
+                <Text style={styles.metricNumber}>{metrics.totalOrders}</Text>
+              </CardContent>
+            </Card>
+            <Card style={styles.metricCard}>
+              <CardContent style={{ padding: 16 }}>
+                <Text style={styles.metricLabel}>Pesanan Rata-rata</Text>
+                <Text style={styles.metricNumber}>{formatCurrency(Math.round(metrics.avgOrder))}</Text>
+              </CardContent>
+            </Card>
+          </View>
+
+          <Card style={styles.reportSummaryCard}>
+            <CardContent style={{ padding: 20 }}>
+              <Text style={styles.sectionHeading}>Ringkasan Bisnis</Text>
+              <Text style={styles.summaryText}>
+                Untuk periode yang dipilih, dasbor admin Anda menemukan <Text style={{ fontWeight: "700" }}>{metrics.totalOrders}</Text> pesanan tersegmentasi aktif dan menghasilkan <Text style={{ fontWeight: "700", color: theme.colors.primary }}>{formatCurrency(metrics.totalRevenue)}</Text> pendapatan.
+              </Text>
+              <Text style={[styles.summaryText, { marginTop: 10, fontWeight: "600" }]}>Distribusi status pesanan (total item):</Text>
+              {Object.entries(metrics.statusCounts).map(([status, count]) => (
+                <Text key={status} style={styles.summaryText}>• {status.toUpperCase()}: {count} row(s)</Text>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card style={styles.reportSummaryCard}>
+            <CardContent style={{ padding: 20 }}>
+              <Text style={styles.sectionHeading}>Item dengan Penjualan Tertinggi</Text>
+              {metrics.bestSeller.length === 0 ? (
+                <Text style={styles.summaryText}>Tidak ada penjualan item yang tercatat untuk periode ini.</Text>
+              ) : (
+                metrics.bestSeller.map(([name, revenue], index) => (
+                  <View key={name} style={styles.topItemRow}>
+                    <Text style={styles.topItemName}>{index + 1}. {name}</Text>
+                    <Text style={styles.topItemRevenue}>{formatCurrency(revenue)}</Text>
+                  </View>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <Card style={styles.sampleCard}>
+          <CardContent style={{ padding: 20 }}>
+            <Text style={styles.sampleText}>Use the date range above to build an accurate sales report for your restaurant.</Text>
+          </CardContent>
+        </Card>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: spacing.xl, width: "100%", maxWidth: 1280, alignSelf: "center" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.background },
+  loadingText: { marginTop: 16, color: theme.colors.mutedForeground },
+  header: { marginBottom: spacing.xl },
+  title: { fontSize: 32, fontWeight: "800", color: theme.colors.foreground },
+  subtitle: { fontSize: 15, marginTop: 6, color: theme.colors.mutedForeground },
+  reportCard: { borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: spacing.xl },
+  sectionHeading: { fontSize: 18, fontWeight: "800", color: theme.colors.foreground, marginBottom: 16 },
+  fieldLabel: { fontSize: 13, fontWeight: "700", color: theme.colors.mutedForeground, marginBottom: 8, marginTop: 10 },
+  generateButton: { height: 48, borderRadius: 12, marginTop: 20 },
+  metricsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginBottom: spacing.xl },
+  metricCard: { flex: 1, minWidth: 150, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
+  metricLabel: { color: theme.colors.mutedForeground, fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  metricNumber: { marginTop: 14, fontSize: 24, fontWeight: "800", color: theme.colors.foreground },
+  reportSummaryCard: { borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 16 },
+  summaryText: { color: theme.colors.foreground, lineHeight: 22 },
+  sampleCard: { borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
+  sampleText: { color: theme.colors.mutedForeground, lineHeight: 22 },
+  topItemRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  topItemName: { fontWeight: "700", color: theme.colors.foreground },
+  topItemRevenue: { color: theme.colors.primary, fontWeight: "600" },
+});
