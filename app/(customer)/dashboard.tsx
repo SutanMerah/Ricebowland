@@ -10,7 +10,7 @@ import { theme } from "@/constants/theme";
 import { spacing, radius } from "@/components/system";
 import { useAuth } from "@/components/system/AuthContext"; // 👈 1. Import Autentikasi
 
-const API_BASE_URL = "http://192.168.43.144:8000/api"; 
+  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 const menuMapping: Record<number, { name: string; price: number }> = {
   1: { name: "Teriyaki Chicken Bowl", price: 12000 },

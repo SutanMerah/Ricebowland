@@ -9,7 +9,7 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/components/system/AuthContext";
 import { spacing } from "@/components/system";
 
-const API_BASE_URL = "http://192.168.43.144:8000/api";
+  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 export default function MyOrders() {
   const { user } = useAuth();

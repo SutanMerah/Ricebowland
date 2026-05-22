@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system/spacing"; // Fix: Import path dituntaskan
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 interface RawOrderItem {
   id: number;

@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system/spacing";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 const orderStatusOptions = [
   { label: "Tertunda", value: "pending" },

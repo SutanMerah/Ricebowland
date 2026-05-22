@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 interface MenuItem {
   id: number | string;

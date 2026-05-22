@@ -48,7 +48,7 @@ export default function PurchasingPage() {
   const formatIDR = (price: number) => 
     `Rp ${price.toLocaleString("id-ID")}`;
 
-  const API_BASE_URL = "http://192.168.43.144:8000/api"; 
+  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
   const handleConfirmOrder = async () => {
     // 🚀 2. VALIDASI KEAMANAN FRONTEND: Cegah order masuk jika memilih transfer

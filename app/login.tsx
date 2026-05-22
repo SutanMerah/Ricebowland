@@ -35,7 +35,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const API_BASE_URL = "http://192.168.43.144:8000/api";
+  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 const handleSubmit = async () => {
     if (!email || !password) {
