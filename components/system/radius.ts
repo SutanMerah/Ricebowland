@@ -1,8 +1,9 @@
 import { theme } from "../../constants/theme";
 
-export const radius = {
+export const radius: { sm: number; md: number; lg: number; xl: number; full: number } = {
   sm: theme.radius.sm,
   md: theme.radius.md,
   lg: theme.radius.lg,
   xl: theme.radius.xl,
+  full: theme.radius.full,
 };

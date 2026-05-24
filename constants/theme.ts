@@ -20,6 +20,7 @@ export const theme = {
 
     destructive: "#d4183d",
     destructiveForeground: "#ffffff",
+    success: "#16A34A",
 
     border: "rgba(120,113,108,0.2)",
 
@@ -40,6 +41,7 @@ export const theme = {
     md: 10,
     lg: 12,
     xl: 16,
+    full: 999,
   },
 
   font: {

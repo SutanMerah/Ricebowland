@@ -7,6 +7,11 @@ export const typography = {
     fontWeight: theme.font.weightMedium,
   } as TextStyle,
 
+  title2: {
+    fontSize: 26,
+    fontWeight: theme.font.weightMedium,
+  } as TextStyle,
+
   h2: {
     fontSize: 24,
     fontWeight: theme.font.weightMedium,
