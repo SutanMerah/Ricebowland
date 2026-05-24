@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, TouchableOpacity, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -64,7 +64,7 @@ export default function AdminMenuManagement() {
     }
   };
 
-  const createMenuItem = async () => {
+const createMenuItem = async () => {
     if (!name.trim() || !description.trim() || !imageUri) {
       setCreateError("Mohon isi nama, deskripsi, dan pilih gambar.");
       return;
@@ -80,11 +80,24 @@ export default function AdminMenuManagement() {
 
     if (imageUri && imageFileName) {
       const imageType = imageFileName.endsWith(".png") ? "image/png" : "image/jpeg";
-      formData.append("image", {
-        uri: imageUri,
-        name: imageFileName,
-        type: imageType,
-      } as any);
+
+      if (Platform.OS === "web") {
+        // --- PERBAIKAN DI SINI ---
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        
+        // Bungkus blob menjadi File untuk memaksa tipe MIME terbaca oleh Laravel
+        const imageFile = new File([blob], imageFileName, { type: imageType });
+        formData.append("image", imageFile);
+        // -------------------------
+      } else {
+        // Khusus Mobile
+        formData.append("image", {
+          uri: imageUri,
+          name: imageFileName,
+          type: imageType,
+        } as any);
+      }
     }
 
     try {
@@ -96,7 +109,12 @@ export default function AdminMenuManagement() {
 
       const result = await response.json().catch(() => null);
       if (!response.ok) {
+        // Menampilkan pesan error spesifik dari backend (jika ada)
         const message = result?.message || `Tidak dapat membuat menu baru (${response.status})`;
+        // Jika ada detail error dari Laravel, kita tampilkan agar lebih jelas
+        if (result?.errors) {
+            console.error("Detail Error Validasi:", result.errors);
+        }
         throw new Error(message);
       }
 
