@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Plus, Minus, ShoppingCart, Trash2 } from "lucide-react-native";
+import { API_BASE_URL } from "@/lib/api";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -16,45 +18,59 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { theme } from "@/constants/theme";
 import { spacing, radius } from "@/components/system";
 
-const menuItems = [
-  {
-    id: 1,
-    name: "Ayam Teriyaki",
-    price: 12000,
-    image: "https://images.pexels.com/photos/5949881/pexels-photo-5949881.jpeg",
-    description: "Nasi hangat dengan potongan ayam saus teriyaki gurih manis.",
-  },
-  {
-    id: 2,
-    name: "Ayam Lada Hitam",
-    price: 12000,
-    image: "https://images.pexels.com/photos/262959/pexels-photo-262959.jpeg",
-    description: "Ayam juicy dengan saus lada hitam pedas hangat yang mantap.",
-  },
-  {
-    id: 3,
-    name: "Ayam Asam Manis",
-    price: 12000,
-    image: "https://images.pexels.com/photos/103124/pexels-photo-103124.jpeg",
-    description: "Perpaduan segar saus asam manis dan ayam krispi yang lezat.",
-  },
-];
-
 interface CartItem {
-  id: number;
+  id: number | string;
   name: string;
   price: number;
   quantity: number;
+}
+
+interface MenuItem {
+  id: number | string;
+  name: string;
+  price: number;
+  image?: string;
+  description?: string;
 }
 
 export default function MenuPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const isDesktop = width >= 768;
 
-  const getItemQuantity = (id: number) =>
+  const loadMenuItems = async () => {
+    try {
+      setIsLoading(true);
+      setLoadError(null);
+
+      const response = await fetch(`${API_BASE_URL}/menus`);
+      if (!response.ok) {
+        throw new Error(`Gagal memuat menu: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const parsedMenus = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+
+      setMenuItems(parsedMenus);
+    } catch (error: any) {
+      console.error("Gagal memuat menu dari server:", error);
+      setMenuItems([]);
+      setLoadError(error?.message || "Gagal memuat menu. Silakan coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMenuItems();
+  }, []);
+
+  const getItemQuantity = (id: number | string) =>
     cart.find((c) => c.id === id)?.quantity || 0;
 
   const addToCart = (item: (typeof menuItems)[0]) => {
@@ -69,7 +85,7 @@ export default function MenuPage() {
     });
   };
 
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: number | string) => {
     setCart((prev) => {
       const exist = prev.find((c) => c.id === id);
       if (exist && exist.quantity > 1) {
@@ -81,11 +97,37 @@ export default function MenuPage() {
     });
   };
 
-  const removeItem = (id: number) =>
+  const removeItem = (id: number | string) =>
     setCart((prev) => prev.filter((c) => c.id !== id));
 
   const totalPrice = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Memuat menu Ricebowland...</Text>
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>{loadError}</Text>
+        <Button title="Muat ulang menu" onPress={loadMenuItems} style={styles.orderBtn} />
+      </View>
+    );
+  }
+
+  if (menuItems.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Menu belum tersedia. Silakan coba lagi nanti atau hubungi admin.</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.screen}>
@@ -101,10 +143,10 @@ export default function MenuPage() {
                 const qty = getItemQuantity(item.id);
                 return (
                   <Card key={item.id} style={[styles.card, !isDesktop && styles.cardMobile]}>
-                    <ImageWithFallback src={item.image} style={styles.image} />
+                    <ImageWithFallback src={item.image ?? ""} style={styles.image} />
                     <CardContent style={styles.cardContent}>
                       <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.desc}>{item.description}</Text>
+                      <Text style={styles.desc}>{item.description ?? ""}</Text>
 
                       <View style={styles.cardFooter}>
                         <Text style={styles.price}>
@@ -307,10 +349,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    boxShadow: "0px 4px 10px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   cartHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
@@ -334,6 +373,18 @@ const styles = StyleSheet.create({
   totalPriceBold: { fontWeight: "800", fontSize: 20, color: theme.colors.primary },
   
   orderBtn: { marginTop: 16, height: 50, borderRadius: radius.lg },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: theme.colors.mutedForeground,
+    fontSize: 16,
+  },
 
   emptyCart: { alignItems: "center", paddingVertical: 40 },
   emptyText: { marginTop: 12, fontWeight: "700", color: theme.colors.foreground },

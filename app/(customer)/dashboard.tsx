@@ -9,14 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { theme } from "@/constants/theme";
 import { spacing, radius } from "@/components/system";
 import { useAuth } from "@/components/system/AuthContext"; // 👈 1. Import Autentikasi
-
-  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
-
-const menuMapping: Record<number, { name: string; price: number }> = {
-  1: { name: "Teriyaki Chicken Bowl", price: 12000 },
-  2: { name: "Ayam Lada Hitam", price: 12000 },
-  3: { name: "Ayam Asam Manis", price: 12000 },
-};
+import { API_BASE_URL } from "@/lib/api";
 
 export default function CustomerDashboardCombined() {
   const { user } = useAuth(); // 👈 2. Ambil data user yang sedang aktif login
@@ -24,7 +17,8 @@ export default function CustomerDashboardCombined() {
   
   const [hasOrder, setHasOrder] = useState(false);
   const [groupedOrders, setGroupedOrders] = useState<any[]>([]); 
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
+  const [menuMap, setMenuMap] = useState<Record<number, { name: string; price: number }>>({});
 
   const formatFigmaDate = (dateString: string) => {
     if (!dateString) return "Hari Ini";
@@ -62,7 +56,7 @@ export default function CustomerDashboardCombined() {
         };
       }
 
-      const menuDetail = menuMapping[item.menu_id] || { name: `Menu ID: ${item.menu_id}`, price: 0 };
+      const menuDetail = menuMap[item.menu_id] || { name: `Menu ID: ${item.menu_id}`, price: 0 };
       const itemQty = item.qty || item.quantity || 1;
       const itemSubtotal = menuDetail.price * itemQty;
 
@@ -125,10 +119,42 @@ const fetchOrdersFromLaravel = async () => {
     }
   };
 
+  useEffect(() => {
+    async function loadMenuMap() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/menus`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const parsedMenus = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+        const mapping = parsedMenus.reduce((acc: Record<number, { name: string; price: number }>, item: any) => {
+          if (item?.id != null) {
+            acc[Number(item.id)] = {
+              name: item.name ?? `Menu ID: ${item.id}`,
+              price: typeof item.price === "number" ? item.price : Number(item.price) || 0,
+            };
+          }
+          return acc;
+        }, {});
+
+        setMenuMap(mapping);
+      } catch (error) {
+        console.warn("Gagal memuat daftar menu untuk dashboard:", error);
+      }
+    }
+
+    loadMenuMap();
+  }, []);
+
   // 🚀 Jalankan fetch ulang jika ada parameter order baru ATAU saat data user selesai dimuat ulang (anti-refresh)
   useEffect(() => {
     fetchOrdersFromLaravel();
-  }, [params.hasOrder, user?.id]); 
+  }, [params.hasOrder, user?.id, menuMap]); 
 
   const getStatusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -295,10 +321,7 @@ const styles = StyleSheet.create({
     padding: spacing.xxl,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
+    boxShadow: "0px 2px 15px rgba(0,0,0,0.05)",
     elevation: 2,
     marginTop: 20,
     width: '100%',

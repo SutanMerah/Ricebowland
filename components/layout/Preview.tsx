@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
 import { Link } from "expo-router";
 
@@ -6,8 +7,9 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { theme } from "@/constants/theme";
 import { spacing, typography } from "@/components/system";
+import { API_BASE_URL } from "@/lib/api";
 
-const menuItems = [
+const defaultMenuItems = [
   {
     id: 1,
     name: "Ayam Teriyaki",
@@ -33,10 +35,58 @@ const menuItems = [
 
 export function MenuPreview() {
   const { width } = useWindowDimensions();
+  const [menuItems, setMenuItems] = useState(defaultMenuItems);
+  const [isLoading, setIsLoading] = useState(false);
   const isDesktop = width >= 768;
 
   // Logika Grid: 3 kolom di desktop, 1 kolom di mobile
   const cardWidth = isDesktop ? (width - 120 - 64) / 3 : '100%';
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPreviewMenus() {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/menus`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const parsedMenus = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+        if (!isMounted || parsedMenus.length === 0) return;
+
+        setMenuItems(
+          parsedMenus.slice(0, 3).map((item: any, index: number) => ({
+            id: item.id ?? index,
+            name: item.name ?? defaultMenuItems[index]?.name ?? "Menu",
+            price:
+              typeof item.price === "number"
+                ? `Rp ${item.price.toLocaleString("id-ID")}`
+                : item.price ?? defaultMenuItems[index]?.price ?? "Rp 0",
+            image:
+              item.image || item.image_url || defaultMenuItems[index]?.image || defaultMenuItems[0].image,
+            description: item.description ?? defaultMenuItems[index]?.description ?? "",
+          }))
+        );
+      } catch {
+        // Keep fallback menu jika fetch gagal
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadPreviewMenus();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const previewItems = menuItems.slice(0, 3);
 
   return (
     <View style={styles.section}>
@@ -129,10 +179,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
+    boxShadow: '0px 2px 15px rgba(0,0,0,0.05)',
   },
   image: {
     height: 220,

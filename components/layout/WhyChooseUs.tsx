@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl || 24,
     borderWidth: 0, // Menghilangkan border agar clean seperti Figma
     elevation: 0,
-    shadowColor: 'transparent', // Menyesuaikan style card di screenshot figma
+    boxShadow: 'none',
     padding: 10,
   },
   cardContent: {

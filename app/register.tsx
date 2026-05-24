@@ -27,6 +27,7 @@ import {
 import { theme } from "@/constants/theme";
 import { spacing, radius, typography } from "@/components/system";
 import { useAuth } from "@/components/system/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function Register() {
   const { login } = useAuth();
@@ -39,7 +40,6 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
 
-    const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 
 
@@ -129,7 +129,8 @@ export default function Register() {
     const userName = responseUser?.name || responseUser?.user?.name || "Pengguna Baru";
     const userEmail = responseUser?.email || email;
     
-    await login(selectedRole, userEmail, userId, userName);
+    const token = result?.token || result?.access_token || result?.data?.token || result?.data?.access_token || responseUser?.token;
+    await login(selectedRole, userEmail, userId, userName, token);
 
 
 
@@ -289,10 +290,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: spacing.md,
     elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
+    boxShadow: "0px 10px 20px rgba(0,0,0,0.05)",
     borderWidth: 0,
   },
   header: {

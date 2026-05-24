@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, TouchableOpacity } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system";
-
-  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
+import { API_BASE_URL } from "@/lib/api";
 
 interface MenuItem {
   id: number | string;
   name: string;
+  description?: string;
   price?: number;
 }
 
@@ -24,9 +25,13 @@ export default function AdminMenuManagement() {
   const isDesktop = width >= 768;
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadMenus() {
@@ -44,26 +49,69 @@ export default function AdminMenuManagement() {
     loadMenus();
   }, []);
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const asset = result.assets[0];
+      setImageUri(asset.uri);
+      setImageFileName(asset.fileName || `image_${Date.now()}.jpg`);
+    }
+  };
+
   const createMenuItem = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !description.trim() || !imageUri) {
+      setCreateError("Mohon isi nama, deskripsi, dan pilih gambar.");
+      return;
+    }
     const parsedPrice = Number(price.replace(/[^0-9]/g, "")) || 0;
     setIsSubmitting(true);
+    setCreateError(null);
 
-    const payload = { name: name.trim(), price: parsedPrice };
-    const newMenu: MenuItem = { id: Date.now(), name: payload.name, price: parsedPrice };
+    const formData = new FormData();
+    formData.append("name", name.trim());
+    formData.append("description", description.trim());
+    formData.append("price", parsedPrice.toString());
 
-    setMenus((current) => [newMenu, ...current]);
-    setName("");
-    setPrice("");
+    if (imageUri && imageFileName) {
+      const imageType = imageFileName.endsWith(".png") ? "image/png" : "image/jpeg";
+      formData.append("image", {
+        uri: imageUri,
+        name: imageFileName,
+        type: imageType,
+      } as any);
+    }
 
     try {
-      await fetch(`${API_BASE_URL}/menus`, {
+      const response = await fetch(`${API_BASE_URL}/menus`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: { "Accept": "application/json" },
+        body: formData,
       });
-    } catch (error) {
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = result?.message || `Tidak dapat membuat menu baru (${response.status})`;
+        throw new Error(message);
+      }
+
+      const createdMenu = result && result?.id
+        ? result
+        : { id: Date.now(), name: name.trim(), description: description.trim(), price: parsedPrice };
+      setMenus((current) => [createdMenu, ...current]);
+      setName("");
+      setDescription("");
+      setPrice("");
+      setImageUri(null);
+      setImageFileName(null);
+    } catch (error: any) {
       console.error("Gagal membuat menu baru:", error);
+      setCreateError(error?.message || "Gagal membuat menu baru. Silakan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -106,11 +154,28 @@ export default function AdminMenuManagement() {
             onChangeText={setName}
           />
           <Input
+            placeholder="Deskripsi Menu"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={3}
+            style={{ minHeight: 80, textAlignVertical: 'top' }}
+          />
+          <Input
             placeholder="Harga (contoh 15000)"
             value={price}
             onChangeText={setPrice}
             keyboardType="numeric"
           />
+          <TouchableOpacity
+            style={[styles.imagePickerButton, imageUri && styles.imagePickerButtonSelected]}
+            onPress={pickImage}
+          >
+            <Text style={styles.imagePickerText}>
+              {imageFileName ? `✓ ${imageFileName}` : "📷 Pilih Gambar Menu"}
+            </Text>
+          </TouchableOpacity>
+          {createError ? <Text style={styles.errorText}>{createError}</Text> : null}
           <Button
             title={isSubmitting ? "Menambahkan..." : "Tambah Menu"}
             onPress={createMenuItem}
@@ -171,4 +236,25 @@ const styles = StyleSheet.create({
   menuName: { fontSize: 16, fontWeight: "800", color: theme.colors.foreground },
   menuPrice: { marginTop: 6, color: theme.colors.mutedForeground },
   deleteButton: { height: 40, borderRadius: 10, borderColor: theme.colors.border },
+  errorText: { color: theme.colors.destructive, marginBottom: spacing.sm },
+  imagePickerButton: {
+    padding: spacing.md,
+    marginVertical: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderStyle: "dashed" as any,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f9f9f9",
+  },
+  imagePickerButtonSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: "#e8f5e9",
+  },
+  imagePickerText: {
+    fontSize: 14,
+    fontWeight: "600" as any,
+    color: theme.colors.foreground,
+  },
 });

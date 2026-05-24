@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useAuth } from "@/components/system/AuthContext";
 import { ArrowLeft, Check, CreditCard, Banknote } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
 import { spacing, radius } from "@/components/system";
+import { API_BASE_URL } from "@/lib/api";
 
 interface CartItem {
   id: number;
@@ -42,13 +44,15 @@ export default function PurchasingPage() {
   // 🚀 1. SINKRONISASI: Ubah default state ke "cod" karena transfer sedang mogok kerja
   const [purchaseType, setPurchaseType] = useState<"transfer" | "cod">("cod");
 
+  const { user } = useAuth();
+
   const getSubtotal = () =>
     cartItems.reduce((t, i) => t + i.price * i.quantity, 0);
 
   const formatIDR = (price: number) => 
     `Rp ${price.toLocaleString("id-ID")}`;
 
-  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
+  
 
   const handleConfirmOrder = async () => {
     // 🚀 2. VALIDASI KEAMANAN FRONTEND: Cegah order masuk jika memilih transfer
@@ -58,15 +62,15 @@ export default function PurchasingPage() {
     }
 
     try {
-      const testUserId = 1; 
+      const sendingUserId = user?.id || 1;
 
       const orderPromises = cartItems.map(async (item) => {
         const payload = {
-          user_id: testUserId,
-          menu_id: item.id, 
+          user_id: Number(sendingUserId),
+          menu_id: Number(item.id),
           qty: item.quantity,
           customer_name: customerName,
-          notes: notes
+          notes: notes,
         };
 
         const response = await fetch(`${API_BASE_URL}/orders`, {

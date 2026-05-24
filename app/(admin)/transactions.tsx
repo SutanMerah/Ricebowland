@@ -6,8 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Select } from "@/components/ui/Select";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system/spacing";
-
-  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
+import { API_BASE_URL } from "@/lib/api";
 
 const orderStatusOptions = [
   { label: "Tertunda", value: "pending" },

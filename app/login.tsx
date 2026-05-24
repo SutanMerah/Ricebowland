@@ -26,6 +26,7 @@ import {
 import { theme } from "@/constants/theme";
 import { spacing, radius, typography } from "@/components/system";
 import { useAuth } from "@/components/system/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function Login() {
   const { login } = useAuth();
@@ -35,7 +36,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 const handleSubmit = async () => {
     if (!email || !password) {
@@ -76,9 +76,10 @@ const handleSubmit = async () => {
       const serverUserName = responseUser?.name || responseUser?.user?.name || "Pengguna Ricebowland";
       const serverUserRole = responseUser?.role || responseUser?.user?.role || (email.toLowerCase() === "admin@bowlhub.com" ? "admin" : "customer");
       const serverUserEmail = responseUser?.email || email;
+      const token = result?.token || result?.access_token || result?.data?.token || result?.data?.access_token || responseUser?.token;
 
       // 🚀 KIRIMKAN DATA NYATA KE STORAGE CONTEXT
-      await login(serverUserRole as any, serverUserEmail, serverUserId, serverUserName);
+      await login(serverUserRole as any, serverUserEmail, serverUserId, serverUserName, token);
       
       if (serverUserRole === "customer") {
         router.replace("/(customer)/dashboard");
@@ -161,7 +162,7 @@ const handleSubmit = async () => {
 
             {/* ⚠️ INPUT SELECT ROLE TELAH DIHAPUS DEMI KEAMANAN AKUN */}
 
-            <TouchableOpacity style={styles.alignRight}>
+            <TouchableOpacity style={styles.alignRight} onPress={() => router.push("/forgot-password") }>
               <Text style={styles.forgotText}>Lupa kata sandi?</Text>
             </TouchableOpacity>
 
@@ -215,10 +216,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: spacing.md,
     elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
+    boxShadow: '0px 10px 20px rgba(0,0,0,0.05)',
     borderWidth: 0,
   },
   header: {

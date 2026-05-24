@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system";
+import { API_BASE_URL } from "@/lib/api";
 
 // Interface disesuaikan dengan skema flat database Laravel kamu
 interface Order {
@@ -49,11 +50,10 @@ export default function AdminDashboard() {
     async function fetchDashboardData() {
       try {
         setIsLoading(true);
-        const BASE_URL = "http://127.0.0.1:8000/api"; 
 
         const [ordersRes, menusRes] = await Promise.all([
-          fetch(`${BASE_URL}/orders`),
-          fetch(`${BASE_URL}/menus`)
+          fetch(`${API_BASE_URL}/orders`),
+          fetch(`${API_BASE_URL}/menus`)
         ]);
 
         const ordersData = await ordersRes.json();
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     borderColor: "#f1f3f4", 
     backgroundColor: "#ffffff",
     elevation: 0, 
-    shadowColor: "transparent",
+    boxShadow: "none",
   },
   cardContentFlex: {
     padding: 20, 

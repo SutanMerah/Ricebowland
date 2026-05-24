@@ -5,8 +5,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system/spacing"; // Fix: Import path dituntaskan
-
-  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
+import { API_BASE_URL } from "@/lib/api";
 
 interface RawOrderItem {
   id: number;

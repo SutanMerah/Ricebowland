@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/components/system/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
 import { spacing } from "@/components/system";
 
-  const API_BASE_URL = "https://backend-ricebowland.fly.dev/api";
 
 export default function MyOrders() {
   const { user } = useAuth();

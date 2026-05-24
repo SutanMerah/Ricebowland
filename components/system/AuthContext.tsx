@@ -15,13 +15,14 @@ type UserSession = {
   email: string;
   role: Role;
   name?: string;
+  token?: string;
 };
 
 type AuthContextType = {
   role: Role;
   user: UserSession | null; // 👈 Tambahkan ini agar komponen lain tahu siapa yang login
   loading: boolean;
-  login: (role: Role, email: string, userId: number, name?: string) => Promise<void>; // 👈 Tambahkan userId
+  login: (role: Role, email: string, userId: number, name?: string, token?: string) => Promise<void>; // 👈 Tambahkan userId + token
   logout: () => Promise<void>;
 };
 
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // LOGIN (Menggunakan data asli kiriman Laravel)
-  const login = async (selectedRole: Role, email: string, userId: number, name?: string) => {
+  const login = async (selectedRole: Role, email: string, userId: number, name?: string, token?: string) => {
     setLoading(true);
 
     const userData: UserSession = {
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: email,
       role: selectedRole,
       name: name || "Pengguna Ricebowland",
+      token: token,
     };
 
     await saveSession(userData);

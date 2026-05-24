@@ -7,6 +7,7 @@ export type UserSession = {
   email: string;
   role: string;
   name?: string;
+  token?: string;
 };
 
 export async function saveSession(session: UserSession) {
