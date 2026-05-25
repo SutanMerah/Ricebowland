@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, Platform } from "react-native";
 import { router } from "expo-router";
 import { useState, useEffect } from "react"; 
 
@@ -484,13 +484,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#f1f3f4", 
     backgroundColor: "#ffffff",
-    elevation: 0, 
-    boxShadow: "none",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   cardContentFlex: {
-    padding: 20, 
-    height: "100%",
+    padding: 20,
     justifyContent: "space-between",
+    ...Platform.select({ web: { height: "100%" }, default: {} }),
   },
   iconCircle: {
     width: 44,
@@ -551,6 +554,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#f1f3f4",
+    backgroundColor: "#ffffff",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   tableHeaderSection: {
     flexDirection: "row",
@@ -620,6 +629,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
+    backgroundColor: "#ffffff",
   },
   transactionCardTop: {
     flexDirection: 'row',

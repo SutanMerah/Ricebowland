@@ -1,4 +1,4 @@
-import { Slot, useRouter } from "expo-router";
+import { Slot, useRouter, useRootNavigationState } from "expo-router";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { useEffect } from "react";
 import { useAuth } from "@/components/system/AuthContext"; // 👈 Gunakan AuthContext
@@ -8,16 +8,17 @@ import { theme } from "@/constants/theme";
 export default function CustomerLayout() {
   const router = useRouter();
   const { role, loading } = useAuth(); // 👈 Ambil status loading global
+  const rootNavigationState = useRootNavigationState();
 
   useEffect(() => {
     // ✋ TAHAN: Jika AuthContext masih memuat sesi dari storage, jangan lakukan redirect!
-    if (loading) return;
+    if (loading || !rootNavigationState?.key) return;
 
     // Jika pemuatan selesai dan ternyata perannya bukan customer, lempar ke login
     if (role !== "customer") {
-      router.replace("/login");
+      setTimeout(() => router.replace("/login"), 0);
     }
-  }, [role, loading]);
+  }, [role, loading, rootNavigationState?.key]);
 
   // Tampilkan indikator pemuatan data selama browser melakukan refresh halaman
   if (loading) {

@@ -14,11 +14,11 @@ export default function Index() {
     if (loading || !rootNavigationState?.key) return;
 
     if (role === "guest") {
-      router.replace("/(public)/landing");
+      setTimeout(() => router.replace("/(public)/landing"), 0);
     } else if (role === "customer") {
-      router.replace("/(customer)/dashboard");
+      setTimeout(() => router.replace("/(customer)/dashboard"), 0);
     } else if (role === "admin") {
-      router.replace("/(admin)/dashboard");
+      setTimeout(() => router.replace("/(admin)/dashboard"), 0);
     }
   }, [role, loading, rootNavigationState?.key]);
 

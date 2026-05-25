@@ -82,9 +82,11 @@ const handleSubmit = async () => {
       await login(serverUserRole as any, serverUserEmail, serverUserId, serverUserName, token);
       
       if (serverUserRole === "customer") {
-        router.replace("/(customer)/dashboard");
+        // Delay replace so navigator can initialize
+        setTimeout(() => router.replace("/(customer)/dashboard"), 0);
       } else if (serverUserRole === "admin") {
-        router.replace("/(admin)/dashboard");
+        // Delay replace so navigator can initialize
+        setTimeout(() => router.replace("/(admin)/dashboard"), 0);
       }
 
     } catch (error: any) {

@@ -211,7 +211,7 @@ const fetchOrdersFromLaravel = async () => {
           </View>
           <Text style={styles.cardTitle}>No orders yet</Text>
           <Text style={styles.cardSub}>Start ordering your favorite meals</Text>
-          <Button title="Order Now" onPress={() => router.push("/menu")} style={styles.buttonEmpty} />
+          <Button title="Order Now" onPress={() => router.push("/(customer)/menu")} style={styles.buttonEmpty} />
         </View>
       ) : (
         groupedOrders.map((order: any, index: number) => (
@@ -274,7 +274,7 @@ const fetchOrdersFromLaravel = async () => {
               </View>
 
               <View style={styles.actions}>
-                <Button title="Order Again" onPress={() => router.push("/menu")} style={{ flex: 1 }} />
+                <Button title="Order Again" onPress={() => router.push("/(customer)/menu")} style={{ flex: 1 }} />
                 <Button title="Refresh Status" variant="outline" onPress={fetchOrdersFromLaravel} style={{ flex: 1 }} />
               </View>
             </CardContent>
@@ -321,8 +321,11 @@ const styles = StyleSheet.create({
     padding: spacing.xxl,
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0px 2px 15px rgba(0,0,0,0.05)",
     elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     marginTop: 20,
     width: '100%',
     minHeight: 350, 

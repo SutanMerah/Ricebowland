@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   useWindowDimensions,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Plus, Minus, ShoppingCart, Trash2 } from "lucide-react-native";
@@ -176,10 +177,10 @@ export default function MenuPage() {
             </View>
           </View>
 
-          {/* RIGHT: CART (Sticky-like) */}
+          {/* RIGHT: CART */}
           <View style={[
-            styles.cartColumn, 
-            isDesktop ? { position: 'sticky' as any, top: 20 } : styles.cartColumnMobile
+            styles.cartColumn,
+            isDesktop ? styles.cartColumnDesktop : styles.cartColumnMobile
           ]}>
             <View style={styles.cartCard}>
               <View style={styles.cartHeader}>
@@ -237,8 +238,8 @@ export default function MenuPage() {
                   onPress={() => {
                   // Kirim data cart ke halaman purchase
                   router.push({
-                  pathname: "/purchase",
-                  params: { cart: JSON.stringify(cart) }
+                    pathname: "/(customer)/purchase",
+                    params: { cart: JSON.stringify(cart) }
                   });
                   }}
                   style={styles.orderBtn}
@@ -305,7 +306,10 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   image: { height: 160, width: "100%" },
-  cardContent: { padding: spacing.md, flex: 1 },
+  cardContent: {
+    padding: spacing.md,
+    ...Platform.select({ web: { flex: 1 }, default: {} }),
+  },
   itemName: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
   desc: { 
     fontSize: 13, 
@@ -319,7 +323,7 @@ const styles = StyleSheet.create({
     flexDirection: "row", 
     justifyContent: "space-between", 
     alignItems: "center",
-    marginTop: "auto" 
+    ...Platform.select({ web: { marginTop: "auto" }, default: { marginTop: 16 } }),
   },
   price: { fontSize: 18, fontWeight: "800", color: theme.colors.primary },
   
@@ -339,6 +343,9 @@ const styles = StyleSheet.create({
     flex: 1, 
     minWidth: 320,
   },
+  cartColumnDesktop: {
+    minWidth: 320,
+  },
   cartColumnMobile: {
     width: "100%",
     marginTop: spacing.lg,
@@ -349,8 +356,11 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    boxShadow: "0px 4px 10px rgba(0,0,0,0.05)",
     elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   cartHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   row: { flexDirection: "row", alignItems: "center", gap: 10 },

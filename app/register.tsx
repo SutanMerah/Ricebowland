@@ -136,7 +136,8 @@ export default function Register() {
 
     // 4. Alihkan halaman langsung ke dashboard customer
 
-    router.replace("/(customer)/dashboard");
+    // Delay replace so navigator can initialize
+    setTimeout(() => router.replace("/(customer)/dashboard"), 0);
 
 
 

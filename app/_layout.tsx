@@ -1,4 +1,4 @@
-import { Slot, useRouter, useSegments } from "expo-router";
+import { Slot, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { AuthProvider, useAuth } from "@/components/system/AuthContext";
@@ -8,10 +8,13 @@ function RootNavigation() {
   const { user, role, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
+
+  const safeReplace = (path: string) => setTimeout(() => router.replace(path), 0);
 
   useEffect(() => {
     // ✋ TAHAN: Jika sesi masih dimuat dari AsyncStorage, jangan lakukan redirect apapun!
-    if (loading) return;
+    if (loading || !rootNavigationState?.key) return;
 
     const firstSegment = segments[0];
 
@@ -19,7 +22,7 @@ function RootNavigation() {
     if (!user || role === "guest") {
       // Jika mencoba masuk ke area steril (customer / admin), hadang dan tendang ke login
       if (firstSegment === "(customer)" || firstSegment === "(admin)") {
-        router.replace("/login");
+        safeReplace("/login");
       }
       return; // Selesai, jangan jalankan logika di bawah
     }
@@ -28,12 +31,12 @@ function RootNavigation() {
     if (role === "customer") {
       // Jika customer berada di luar foldernya (misal nongkrong di /login atau /(admin))
       if (firstSegment !== "(customer)") {
-        router.replace("/(customer)/dashboard");
+        safeReplace("/(customer)/dashboard");
       }
     } else if (role === "admin") {
       // Jika admin berada di luar foldernya (misal nongkrong di /login atau /(customer))
       if (firstSegment !== "(admin)") {
-        router.replace("/(admin)/dashboard");
+        safeReplace("/(admin)/dashboard");
       }
     }
   }, [user, role, loading, segments]);

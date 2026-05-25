@@ -36,7 +36,7 @@ const handleLogout = async () => {
         
         {/* LOGO - Ujung Kiri */}
         <TouchableOpacity
-          onPress={() => router.push("/dashboard")}
+          onPress={() => router.push("/(customer)/dashboard")}
           style={styles.logo}
         >
           <View style={styles.logoBox}>
@@ -50,12 +50,12 @@ const handleLogout = async () => {
         {/* DESKTOP NAV - Muncul hanya jika layar lebar */}
         {isDesktop ? (
           <View style={styles.desktopNav}>
-            <TouchableOpacity onPress={() => router.push("/menu")}>
+            <TouchableOpacity onPress={() => router.push("/(customer)/menu")}> 
               <Text style={styles.link}>Menu</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/myorder")}
+              onPress={() => router.push("/(customer)/myorder")}
               style={styles.row}
             >
               <Icon name="bag-outline" size={18} color={theme.colors.foreground} />
@@ -83,11 +83,11 @@ const handleLogout = async () => {
       {/* MOBILE MENU DROPDOWN */}
       {(!isDesktop && isMenuOpen) && (
         <View style={styles.mobileMenu}>
-          <TouchableOpacity onPress={() => { router.push("/menu"); setIsMenuOpen(false); }}>
+          <TouchableOpacity onPress={() => { router.push("/(customer)/menu"); setIsMenuOpen(false); }}>
             <Text style={styles.mobileLink}>Menu</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => { router.push("/myorder"); setIsMenuOpen(false); }}>
+          <TouchableOpacity onPress={() => { router.push("/(customer)/myorder"); setIsMenuOpen(false); }}>
             <Text style={styles.mobileLink}>My Orders</Text>
           </TouchableOpacity>
 

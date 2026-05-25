@@ -207,13 +207,13 @@ export default function CustomerDashboardOrdered() {
           <View style={styles.actions}>
             <Button
               title="Order Again"
-              onPress={() => router.push("/menu")}
+              onPress={() => router.push("/(customer)/menu")}
               style={{ flex: 1 }}
             />
             <Button
               title="View All Orders"
               variant="outline"
-              onPress={() => router.push("/my-orders")}
+              onPress={() => router.push("/(customer)/my-orders")}
               style={{ flex: 1 }}
             />
           </View>
