@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,18 @@ import {
   TouchableOpacity,
   ScrollView,
   useWindowDimensions,
+  Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, Check, CreditCard, Banknote } from "lucide-react-native";
+import { useAuth } from "@/components/system/AuthContext";
+import { ArrowLeft, Check, CreditCard, Banknote, ShieldAlert } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
+import { API_BASE_URL } from "@/lib/api";
 import { spacing, radius } from "@/components/system";
 
 interface CartItem {
@@ -24,89 +27,207 @@ interface CartItem {
   quantity: number;
 }
 
+interface InvoiceData {
+  id: number;
+  invoice_code: string;
+  total_amount: number;
+  unique_code: number;
+}
+
 export default function PurchasingPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
-
   const c = theme.colors;
 
-  const cartItems: CartItem[] = params.cart
-    ? JSON.parse(params.cart as string)
-    : [];
+  const cartItems: CartItem[] = params.cart ? JSON.parse(params.cart as string) : [];
+  const { user } = useAuth();
 
+  // --- STATE MANAGEMENT ---
   const [customerName, setCustomerName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(""); // Tambahan Baru Komunikasi WA
   const [notes, setNotes] = useState("");
-  const [purchaseType, setPurchaseType] =
-    useState<"transfer" | "cod">("transfer");
+  const [purchaseType, setPurchaseType] = useState<"transfer" | "cod">("cod");
+  
+  // State untuk mengontrol isolasi layar pseudo-dinamis
+  const [step, setStep] = useState<"form" | "qris" | "waiting">("form");
+  const [currentInvoice, setCurrentInvoice] = useState<InvoiceData | null>(null);
 
-  const getSubtotal = () =>
-    cartItems.reduce((t, i) => t + i.price * i.quantity, 0);
+  const getSubtotal = () => cartItems.reduce((t, i) => t + i.price * i.quantity, 0);
+  const formatIDR = (price: number) => `Rp ${price.toLocaleString("id-ID")}`;
 
-  const formatIDR = (price: number) => 
-    `Rp ${price.toLocaleString("id-ID")}`;
+  // Polling Real-time sederhana checking status invoice ke backend jika masuk step waiting
+  useEffect(() => {
+    if (step !== "waiting" || !currentInvoice) return;
 
-// Isikan IP Address laptop kamu (bukan localhost!)
-const API_BASE_URL = "http://192.168.43.144:8000/api"; 
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/invoices/${currentInvoice.id}/status`);
+        const result = await res.json();
+        
+        if (result.status === "paid") {
+          clearInterval(interval);
+          alert("Pembayaran Terverifikasi! Pesanan Anda sedang diproses.");
+          router.push({
+            pathname: "/(customer)/dashboard",
+            params: { hasOrders: "true" }
+          });
+        }
+      } catch (err) {
+        console.error("Gagal polling status invoice", err);
+      }
+    }, 7000); // Cek tiap 7 detik
 
-const handleConfirmOrder = async () => {
-  try {
-    // 1. Validasi user_id (Karena backend mewajibkan user_id)
-    // Untuk keperluan testing awal, kita hardcode dulu ke id: 1
-    // Idealnya ini diambil dari state login / AsyncStorage kelompokmu
-    const testUserId = 1; 
+    return () => clearInterval(interval);
+  }, [step, currentInvoice]);
 
-    // 2. Karena Laravel hanya menerima 1 menu per request, 
-    // kita bungkus semua proses tembak API ke dalam perulangan (Promise)
-    const orderPromises = cartItems.map(async (item) => {
-      const payload = {
-        user_id: testUserId,
-        menu_id: item.id, // ID menu dari cart
-        qty: item.quantity // Jumlah qty dari cart
-      };
+  const handleConfirmOrder = async () => {
+    if (!phoneNumber) {
+      alert("Nomor Handphone wajib diisi untuk koordinasi pengantaran.");
+      return;
+    }
 
-      const response = await fetch(`${API_BASE_URL}/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: JSON.stringify(payload),
+    const sendingUserId = user?.id || 1;
+
+    // --- ALUR JALUR ISOLASI TRANSFER (STAGING INVOICE) ---
+    if (purchaseType === "transfer") {
+      try {
+        const payload = {
+          user_id: Number(sendingUserId),
+          customer_name: customerName,
+          phone_number: phoneNumber,
+          notes: notes,
+          subtotal: getSubtotal(),
+          cart_items: cartItems, // Lempar bulk items ke tabel staging
+        };
+
+        const res = await fetch(`${API_BASE_URL}/invoices/stage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error("Gagal menginisiasi pembayaran transfer.");
+        const result = await res.json();
+        
+        setCurrentInvoice(result.data);
+        setStep("qris"); // Pindah ke UI isolasi QRIS
+      } catch (error: any) {
+        alert(error.message);
+      }
+      return;
+    }
+
+    // --- ALUR JALUR COD ASLI (PROMISE.ALL LEGACY TETAP UTAN) ---
+    try {
+      const orderPromises = cartItems.map(async (item) => {
+        const payload = {
+          user_id: Number(sendingUserId),
+          menu_id: Number(item.id),
+          qty: item.quantity,
+          customer_name: customerName,
+          phone_number: phoneNumber, // Menambahkan kolom baru ke skema lama
+          notes: notes,
+        };
+
+        const response = await fetch(`${API_BASE_URL}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) throw new Error(`Gagal memesan item: ${item.name}`);
+        return response.json();
       });
 
-      if (!response.ok) {
-        const errorResult = await response.json();
-        throw new Error(errorResult.message || `Gagal memesan item: ${item.name}`);
-      }
-
-      return response.json();
-    });
-
-    // 3. Jalankan semua request secara paralel
-    await Promise.all(orderPromises);
-
-    // 4. Jika semua item sukses masuk ke database Laravel, arahkan ke dashboard
-    alert("Pesanan berhasil disimpan ke database!");
-    
-    router.push({
-      pathname: "/(customer)-dashboard-ordered",
-      params: { hasOrder: "true" } // Kirim tanda ke dashboard kalau statusnya sudah ada orderan
-    });
-
-  } catch (error: any) {
-    console.error("Error Integrasi:", error);
-    alert("Gagal memproses pesanan: " + error.message);
-  }
+      await Promise.all(orderPromises);
+      alert("Pesanan COD berhasil disimpan!");
+      router.push({ pathname: "/(customer)/dashboard", params: { hasOrders: "true" } });
+    } catch (error: any) {
+      alert("Gagal memproses pesanan COD: " + error.message);
+    }
   };
+
+  const handleCancelInvoice = async () => {
+    if (!currentInvoice) return;
+    try {
+      await fetch(`${API_BASE_URL}/invoices/${currentInvoice.id}/cancel`, { method: "POST" });
+      setStep("form");
+      setCurrentInvoice(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDonePayment = () => {
+    // Di sini realisasikan fungsi upload gambar bukti jika modul upload media Anda sudah ada.
+    // Sementara mengubah step lokal ke mode screen waiting simulasi interaktif.
+    setStep("waiting");
+  };
+
+  // --- RENDER SCREEN KONDISIONAL (ISOLASI LAYER) ---
+  if (step === "qris" && currentInvoice) {
+    return (
+      <View style={[styles.centerContainer, { backgroundColor: c.background }]}>
+        <Card style={{ width: isDesktop ? 460 : "92%", padding: 20 }}>
+          <Text style={styles.qrisHeader}>Pembayaran QRIS Simulasian</Text>
+          <Text style={styles.invoiceCode}>{currentInvoice.invoice_code}</Text>
+          
+          {/* QRIS Statis Personal Anda ditaruh di aset folder */}
+          <View style={styles.qrWrapper}>
+            <Image 
+              source={require("@/assets/images/qris-statis-anda.png")} 
+              style={{ width: 220, height: 220 }}
+              resizeMode="contain"
+            />
+          </View>
+
+          <View style={styles.alertBox}>
+            <Text style={styles.alertText}>
+              PENTING: Mohon masukkan nominal persis hingga digit terakhir agar admin dapat mengenali dana Anda:
+            </Text>
+            <Text style={styles.largeTotal}>{formatIDR(currentInvoice.total_amount)}</Text>
+            <Text style={styles.uniqueDetail}>(Subtotal + Kode Unik: Rp {currentInvoice.unique_code})</Text>
+          </View>
+
+          <Button title="Saya Sudah Bayar & Kirim Bukti" onPress={handleDonePayment} style={{ marginTop: 16 }} />
+          <TouchableOpacity onPress={handleCancelInvoice} style={styles.cancelBtnText}>
+            <Text style={{ color: "#EF4444", fontWeight: "600", textAlign: "center" }}>Batal / Ubah Metode Pembayaran</Text>
+          </TouchableOpacity>
+        </Card>
+      </View>
+    );
+  }
+
+  if (step === "waiting") {
+    return (
+      <View style={[styles.centerContainer, { backgroundColor: c.background }]}>
+        <Card style={{ width: isDesktop ? 420 : "90%", padding: 24, alignItems: "center" }}>
+          <ShieldAlert size={48} color={c.primary} />
+          <Text style={styles.waitingTitle}>Menunggu Verifikasi Admin</Text>
+          <Text style={styles.waitingSub}>
+            Sistem mendeteksi transaksi Anda sedang dicocokkan dengan mutasi rekening kami secara berkala. Mohon jangan menutup halaman ini atau kembali ke menu utama hingga proses selesai.
+          </Text>
+          <Button title="Antisipasi: Hubungi WA Admin" onPress={() => alert("Hubungi WA Admin dengan ID: " + currentInvoice?.invoice_code)} variant="outline" style={{ marginTop: 10, width: "100%" }} />
+          <TouchableOpacity onPress={() => setStep("form")} style={{ marginTop: 20 }}>
+            <Text style={{ color: c.mutedForeground, textDecorationLine: "underline" }}>Kembali ubah form data belanja</Text>
+          </TouchableOpacity>
+        </Card>
+      </View>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <Card style={{ width: isDesktop ? 400 : '90%' }}>
           <CardContent style={styles.emptyCard}>
-            <Text style={[styles.emptyTitle, { color: c.foreground }]}>Your cart is empty</Text>
-            <Button title="Go to Menu" onPress={() => router.push("/menu")} />
+            <Text style={[styles.emptyTitle, { color: c.foreground }]}>Keranjang Anda kosong</Text>
+            <Button title="Ke Menu" onPress={() => router.push("/(customer)/menu")} />
           </CardContent>
         </Card>
       </View>
@@ -118,32 +239,40 @@ const handleConfirmOrder = async () => {
       <View style={styles.mainWrapper}>
         <TouchableOpacity style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={18} color={c.mutedForeground} />
-          <Text style={[styles.backText, { color: c.mutedForeground }]}>Back to Menu</Text>
+          <Text style={[styles.backText, { color: c.mutedForeground }]}>Kembali ke Menu</Text>
         </TouchableOpacity>
 
-        {/* BARIS ATAS: Customer Info & Purchase Type */}
         <View style={[styles.grid, !isDesktop && styles.stack]}>
-          
           {/* LEFT: Customer Information */}
           <View style={styles.flex2}>
             <Card style={styles.cardBorder}>
               <CardContent style={styles.p24}>
-                <Text style={[styles.sectionTitle, { color: c.foreground }]}>Customer Information</Text>
+                <Text style={[styles.sectionTitle, { color: c.foreground }]}>Informasi Pelanggan</Text>
                 <View style={styles.inputGap}>
-                  <Label>Name (Optional)</Label>
+                  <Label>Nama Pembeli</Label>
                   <Input
                     value={customerName}
                     onChangeText={setCustomerName}
-                    placeholder="Enter your name"
+                    placeholder="Masukkan nama Anda"
                     style={styles.inputFigma}
                   />
                 </View>
                 <View style={styles.inputGap}>
-                  <Label>Special Instructions (Optional)</Label>
+                  <Label>Nomor HP/WhatsApp</Label>
+                  <Input
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    keyboardType="phone-pad"
+                    placeholder="Contoh: 0812XXXXXXXX"
+                    style={styles.inputFigma}
+                  />
+                </View>
+                <View style={styles.inputGap}>
+                  <Label>Instruksi Khusus (Opsional)</Label>
                   <Input
                     value={notes}
                     onChangeText={setNotes}
-                    placeholder="Any allergies, preferences, or special requests..."
+                    placeholder="Ada alergi, preferensi, atau permintaan khusus..."
                     multiline
                     numberOfLines={4}
                     style={[styles.inputFigma, styles.textArea]}
@@ -157,22 +286,24 @@ const handleConfirmOrder = async () => {
           <View style={styles.flex1}>
             <Card style={styles.cardBorder}>
               <CardContent style={styles.p24}>
-                <Text style={[styles.sectionTitle, { color: c.foreground }]}>Purchase Type</Text>
+                <Text style={[styles.sectionTitle, { color: c.foreground }]}>Metode Pembayaran</Text>
                 <View style={styles.optionRow}>
+                  {/* RE-AKTIVASI LAYANAN SEKARANG SUDAH AKTIF MELALUI STAGING */}
                   <TouchableOpacity
                     onPress={() => setPurchaseType("transfer")}
                     style={[styles.paymentOption, purchaseType === "transfer" && styles.paymentActive]}
                   >
-                    <View style={[styles.iconBox, { backgroundColor: '#FEF3C7' }]}>
-                      <CreditCard size={20} color="#D97706" />
+                    <View style={[styles.iconBox, { backgroundColor: '#E0F2FE' }]}>
+                      <CreditCard size={20} color="#0284C7" />
                     </View>
-                    <Text style={styles.paymentTitle}>Transfer</Text>
-                    <Text style={styles.paymentSub}>Bayar via Bank/E-Wallet</Text>
+                    <Text style={styles.paymentTitle}>Transfer QRIS</Text>
+                    <Text style={styles.paymentSub}>Pseudo-Dinamis Manual</Text>
                     {purchaseType === "transfer" && (
                       <View style={styles.checkBadge}><Check size={10} color="white" /></View>
                     )}
                   </TouchableOpacity>
 
+                  {/* TOMBOL COD */}
                   <TouchableOpacity
                     onPress={() => setPurchaseType("cod")}
                     style={[styles.paymentOption, purchaseType === "cod" && styles.paymentActive]}
@@ -196,8 +327,7 @@ const handleConfirmOrder = async () => {
         <View style={styles.bottomSection}>
           <Card style={styles.cardBorder}>
             <CardContent style={styles.p24}>
-              <Text style={[styles.sectionTitle, { color: c.foreground }]}>Order Summary</Text>
-              
+              <Text style={[styles.sectionTitle, { color: c.foreground }]}>Ringkasan Pesanan</Text>
               <View style={styles.itemsList}>
                 {cartItems.map((item) => (
                   <View key={item.id} style={styles.itemRow}>
@@ -228,7 +358,7 @@ const handleConfirmOrder = async () => {
               </View>
 
               <Button 
-                title="Confirm Order" 
+                title={purchaseType === "transfer" ? "Lanjut Ke Pembayaran QRIS" : "Konfirmasi Pesanan COD"} 
                 onPress={handleConfirmOrder} 
                 style={styles.confirmBtn}
               />
@@ -312,4 +442,16 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyCard: { padding: 40, alignItems: "center", gap: 16 },
   emptyTitle: { fontSize: 18, fontWeight: "600" },
+
+  // STYLE ISOLASI SCREEN QRIS & WAITING (Tambahan Baru dari Bagian Kedua)
+  qrisHeader: { fontSize: 20, fontWeight: "700", textAlign: "center" },
+  invoiceCode: { fontSize: 13, color: "#64748B", textAlign: "center", marginVertical: 4 },
+  qrWrapper: { alignItems: "center", marginVertical: 20, padding: 10, alignSelf: "center", backgroundColor: "white", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0" },
+  alertBox: { backgroundColor: "#FFFBEB", borderWidth: 1, borderColor: "#FDE68A", padding: 16, borderRadius: 10 },
+  alertText: { fontSize: 13, color: "#92400E", textAlign: "center", marginBottom: 8 },
+  largeTotal: { fontSize: 26, fontWeight: "800", color: "#B45309", textAlign: "center" },
+  uniqueDetail: { fontSize: 11, color: "#B45309", textAlign: "center" },
+  cancelBtnText: { marginTop: 16, padding: 8 },
+  waitingTitle: { fontSize: 18, fontWeight: "700", marginTop: 16 },
+  waitingSub: { fontSize: 13, textAlign: "center", color: "#64748B", marginVertical: 12, lineHeight: 18 }
 });

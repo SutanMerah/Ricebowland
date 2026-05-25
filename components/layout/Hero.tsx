@@ -1,12 +1,31 @@
 import { View, Text, StyleSheet, Image, useWindowDimensions } from "react-native";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { theme } from "@/constants/theme";
 import { spacing, radius, typography } from "@/components/system";
+import { scrollRegistry } from "@/app/(public)/landing";
+import { useState } from "react";
 
 export function Hero() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const navigateToSection = (section: string) => {
+      // Tutup menu mobile jika sedang terbuka
+      setIsMenuOpen(false);
+  
+      // Jika sedang tidak di Landing Page, arahkan ke landing dulu
+      // canGoBack biasanya true jika kita berada di route selain index
+      if (router.canGoBack()) {
+        router.push("/landing");
+      }
+      
+      // Beri sedikit delay agar transisi router selesai sebelum scroll dipicu
+      setTimeout(() => {
+        scrollRegistry.scrollToSection(section);
+      }, 100);
+    };
 
   return (
     <View style={styles.section}>
@@ -28,7 +47,7 @@ export function Hero() {
 
             <View style={[styles.buttonRow, !isDesktop && styles.buttonRowMobile]}>
               <View style={isDesktop ? { flex: 0, minWidth: 160 } : { flex: 1 }}>
-                <Button title="Lihat Menu" onPress={() => {}} />
+                <Button title="Lihat Menu" onPress={() => navigateToSection("menu")} /> 
               </View>
 
               <View style={isDesktop ? { flex: 0, minWidth: 160 } : { flex: 1 }}>

@@ -111,7 +111,7 @@ export default function PurchasingPage() {
         <Card style={{ width: isDesktop ? 400 : '90%' }}>
           <CardContent style={styles.emptyCard}>
             <Text style={[styles.emptyTitle, { color: c.foreground }]}>Keranjang Anda kosong</Text>
-            <Button title="Ke Menu" onPress={() => router.push("/(customer)/menu")} />
+            <Button title="Ke Menu" onPress={() => router.push("/menu")} />
           </CardContent>
         </Card>
       </View>
