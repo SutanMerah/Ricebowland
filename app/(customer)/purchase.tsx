@@ -7,7 +7,8 @@ import {
   ScrollView,
   useWindowDimensions,
   Image,
-  Platform, // 🚀 Tambahan untuk deteksi Web vs Mobile
+  Platform,
+  Linking, // 🚀 Tambahan untuk deteksi Web vs Mobile
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/components/system/AuthContext";
@@ -300,11 +301,22 @@ export default function PurchasingPage() {
           </Text>
           
           <Button 
-            title="Antisipasi: Hubungi WA Admin" 
-            onPress={() => alert("Membuka WhatsApp Admin... (ID: " + currentInvoice?.invoice_code)} 
-            variant="outline" 
-            style={{ marginTop: 10, width: "100%" }} 
-          />
+          title="Antisipasi: Hubungi WA Admin" 
+          onPress={() => {
+          const message = encodeURIComponent(
+          `Halo Admin, saya ingin bertanya terkait Invoice: ${currentInvoice?.invoice_code || ''}`
+          );
+
+          Linking.openURL(
+          `https://wa.me/6281265563773?text=${message}`
+          ).catch((err) =>
+          alert("Gagal membuka WhatsApp. Pastikan aplikasi terinstal.")
+          );
+        }} 
+        variant="outline" 
+        style={{ marginTop: 10, width: "100%" }} 
+        />
+
           
           <TouchableOpacity onPress={() => router.push("/(customer)/dashboard")} style={{ marginTop: 20 }}>
             <Text style={{ color: c.mutedForeground, textDecorationLine: "underline" }}>Kembali ke halaman utama</Text>
@@ -390,7 +402,7 @@ export default function PurchasingPage() {
                       <CreditCard size={20} color="#0284C7" />
                     </View>
                     <Text style={styles.paymentTitle}>Transfer QRIS</Text>
-                    <Text style={styles.paymentSub}>Pseudo-Dinamis Manual</Text>
+                    <Text style={styles.paymentSub}>Bayar dengan QRIS</Text>
                     {purchaseType === "transfer" && (
                       <View style={styles.checkBadge}><Check size={10} color="white" /></View>
                     )}
