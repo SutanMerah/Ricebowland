@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   reportCard: { borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: spacing.xl },
   sectionHeading: { fontSize: 18, fontWeight: "800", color: theme.colors.foreground, marginBottom: 16 },
   fieldLabel: { fontSize: 13, fontWeight: "700", color: theme.colors.mutedForeground, marginBottom: 8, marginTop: 10 },
-  generateButton: { height: 48, borderRadius: 12, marginTop: 20 },
+  generateButton: { minHeight: 44, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 20, justifyContent: 'center', alignItems: 'center' },
   metricsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginBottom: spacing.xl },
   metricCard: { flex: 1, minWidth: 150, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
   metricLabel: { color: theme.colors.mutedForeground, fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },

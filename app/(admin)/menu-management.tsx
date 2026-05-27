@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, marginTop: 6, color: theme.colors.mutedForeground },
   formCard: { marginBottom: spacing.xl, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
   formTitle: { fontSize: 18, fontWeight: "800", marginBottom: 16, color: theme.colors.foreground },
-  addButton: { height: 48, borderRadius: 12 },
+  addButton: { minHeight: 44, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center', alignItems: 'center' },
   sectionTitle: { fontSize: 20, fontWeight: "800", marginBottom: 16, color: theme.colors.foreground },
   emptyCard: { borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
   emptyTitle: { fontSize: 18, fontWeight: "800", color: theme.colors.foreground, marginBottom: 8 },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   menuHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   menuName: { fontSize: 16, fontWeight: "800", color: theme.colors.foreground },
   menuPrice: { marginTop: 6, color: theme.colors.mutedForeground },
-  deleteButton: { height: 40, borderRadius: 10, borderColor: theme.colors.border },
+  deleteButton: { minHeight: 44, borderRadius: 10, borderColor: theme.colors.border, paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: theme.colors.destructive, marginBottom: spacing.sm },
   imagePickerButton: {
     padding: spacing.md,

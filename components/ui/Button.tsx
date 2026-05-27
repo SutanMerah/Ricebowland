@@ -8,6 +8,7 @@ type Props = {
   variant?: "default" | "outline" | "ghost";
   size?: "sm" | "md" | "lg"; // Tambahkan tipe size di sini
   style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
 };
 
 export function Button({
@@ -16,11 +17,13 @@ export function Button({
   variant = "default",
   size = "md", // Default-nya tetap 'md'
   style,
+  disabled,
 }: Props) {
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
+      disabled={disabled}
       style={[
         styles.base,
         // Logika varian
@@ -30,6 +33,7 @@ export function Button({
         // Logika ukuran
         styles[size], 
         style,
+        disabled && styles.disabledButton
       ]}
     >
       <Text
@@ -96,5 +100,8 @@ const styles = StyleSheet.create({
   },
   textGhost: {
     color: theme.colors.primary,
+  },
+  disabledButton: { 
+    backgroundColor: '#A9A9A9' 
   },
 });

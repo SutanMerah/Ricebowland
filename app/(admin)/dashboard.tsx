@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, Platform, Modal, Image, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { useState, useEffect } from "react"; 
 
@@ -29,6 +29,23 @@ interface Menu {
   price: string | number;
 }
 
+interface Invoice {
+  id: number;
+  invoice_code: string;
+  user_id: number;
+  customer_name: string;
+  phone_number: string;
+  subtotal: string | number;
+  cart_data: string;
+  status: string;
+  payment_proof: string;
+  created_at: string;
+  user?: {
+    id: number;
+    name: string;
+  };
+}
+
 // Interface hasil grouping transaksional
 interface GroupedTransaction {
   displayId: string;
@@ -44,27 +61,34 @@ export default function AdminDashboard() {
   const isDesktop = width >= 768;
   const [orders, setOrders] = useState<Order[]>([]);
   const [menus, setMenus] = useState<Menu[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [selectedPaymentProof, setSelectedPaymentProof] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         setIsLoading(true);
 
-        const [ordersRes, menusRes] = await Promise.all([
+        const [ordersRes, menusRes, invoicesRes] = await Promise.all([
           fetch(`${API_BASE_URL}/orders`),
-          fetch(`${API_BASE_URL}/menus`)
+          fetch(`${API_BASE_URL}/menus`),
+          fetch(`${API_BASE_URL}/invoices/pending`)
         ]);
 
         const ordersData = await ordersRes.json();
         const menusData = await menusRes.json();
+        const invoicesData = await invoicesRes.json();
 
         // Ambil array langsung atau fallback data jika terbungkus objek
         const orderList = Array.isArray(ordersData) ? ordersData : (ordersData.data || []);
         const menuList = Array.isArray(menusData) ? menusData : (menusData.data || []);
+        const invoiceList = Array.isArray(invoicesData) ? invoicesData : (invoicesData.data || []);
 
         setOrders(orderList);
         setMenus(menuList);
+        setInvoices(invoiceList);
       } catch (error) {
         console.error("Gagal mengambil data dari API backend:", error);
       } finally {
@@ -178,7 +202,10 @@ export default function AdminDashboard() {
     t => t.status.toLowerCase() === "pending" || t.status.toLowerCase() === "processing"
   ).length;
 
-  // 4. Cari menu terlaris berdasarkan kuantitas murni item yang terjual
+  // 4. Jumlah pending QRIS verifications
+  const pendingQRISCount = invoices.length;
+
+  // 5. Cari menu terlaris berdasarkan kuantitas murni item yang terjual
   const getBestSellingMenu = (): string => {
     if (orders.length === 0 || menus.length === 0) return "No Data Available";
     
@@ -233,7 +260,7 @@ export default function AdminDashboard() {
           </Text>
         </View>
 
-        {/* 2. SUMMARY GRID */}
+        {/* 2. SUMMARY GRID - REORDERED WITH NEW QRIS CARD */}
         <View style={[styles.grid, !isDesktop && { justifyContent: 'space-between' }]}>
           {/* Card 1: Total Sales */}
           <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
@@ -253,25 +280,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Card 2: Transactions */}
-          <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
-            <CardContent style={styles.cardContentFlex}>
-              <View style={[styles.iconCircle, { backgroundColor: "#fbf6e3" }]}>
-                <Icon name="receipt" size={20} color="#b06000" />
-              </View>
-              <Text style={styles.cardTimeLabel}>Today</Text>
-              <View style={styles.cardBottomTextGroup}>
-                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}>
-                  {totalTransactions}
-                </Text>
-                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}>
-                  Transactions
-                </Text>
-              </View>
-            </CardContent>
-          </Card>
-
-          {/* Card 3: Best Seller */}
+          {/* Card 2: Best Seller */}
           <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
             <CardContent style={styles.cardContentFlex}>
               <View style={[styles.iconCircle, { backgroundColor: "#fef3eb" }]}>
@@ -289,7 +298,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Card 4: Pending Confirmation */}
+          {/* Card 3: Pending Orders (renamed from Pending Confirmation) */}
           <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
             <CardContent style={styles.cardContentFlex}>
               <View style={[styles.iconCircle, { backgroundColor: "#fce8e6" }]}>
@@ -301,7 +310,25 @@ export default function AdminDashboard() {
                   {pendingOrdersCount}
                 </Text>
                 <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}>
-                  Pending Confirmation
+                  Pending Orders
+                </Text>
+              </View>
+            </CardContent>
+          </Card>
+
+          {/* Card 4: Pending QRIS Verification (NEW) */}
+          <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
+            <CardContent style={styles.cardContentFlex}>
+              <View style={[styles.iconCircle, { backgroundColor: "#fbf6e3" }]}>
+                <Icon name="document-text" size={20} color="#b06000" />
+              </View>
+              <Text style={[styles.cardTimeLabel, { color: "#b06000" }]}>Verifikasi</Text>
+              <View style={styles.cardBottomTextGroup}>
+                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}>
+                  {pendingQRISCount}
+                </Text>
+                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}>
+                  Pending QRIS
                 </Text>
               </View>
             </CardContent>
@@ -384,6 +411,44 @@ export default function AdminDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* RECENT QRIS SUBMISSIONS MOVED TO LEFT COLUMN */}
+            {pendingQRISCount > 0 && (
+              <Card style={[styles.invoicePreviewCard, { marginTop: 18 }]}> 
+                <CardContent style={{ padding: 20 }}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.foreground, marginBottom: 14 }]}>Recent QRIS Submissions</Text>
+                  {invoices.slice(0, 3).map((invoice, idx) => {
+                    const subtotal = typeof invoice.subtotal === 'string' ? parseFloat(invoice.subtotal) : invoice.subtotal;
+                    return (
+                      <View 
+                        key={invoice.id} 
+                        style={[
+                          styles.invoicePreviewItem,
+                          { borderBottomWidth: idx === invoices.slice(0, 3).length - 1 ? 0 : 1 }
+                        ]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.invoicePreviewCode}>{invoice.invoice_code}</Text>
+                          <Text style={styles.invoicePreviewCustomer}>{invoice.customer_name}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={styles.invoicePreviewAmount}>Rp {subtotal.toLocaleString("id-ID")}</Text>
+                          <TouchableOpacity 
+                            onPress={() => {
+                              setSelectedPaymentProof(invoice.payment_proof);
+                              setPaymentModalVisible(true);
+                            }}
+                            style={styles.previewPhotoButton}
+                          >
+                            <Text style={styles.previewPhotoText}>Lihat</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
           </View>
 
           {/* KOLOM KANAN: QUICK ACTIONS */}
@@ -412,7 +477,7 @@ export default function AdminDashboard() {
               />
             </View>
 
-            {/* ALERTS */}
+            {/* ALERT: PENDING ORDERS */}
             <Card style={[styles.alertCard, { backgroundColor: "#fff8f8", borderColor: "#fde8e8" }]}>
               <CardContent style={{ padding: 20 }}>
                 <View style={styles.alertFlexContainer}>
@@ -436,10 +501,64 @@ export default function AdminDashboard() {
                 </View>
               </CardContent>
             </Card>
-          </View>
+
+            {/* ALERT: PENDING QRIS VERIFICATIONS (NEW) */}
+            {pendingQRISCount > 0 && (
+              <Card style={[styles.alertCard, { backgroundColor: "#fffbf0", borderColor: "#ffe5cc" }]}>
+                <CardContent style={{ padding: 20 }}>
+                  <View style={styles.alertFlexContainer}>
+                    <View style={[styles.iconCircle, { backgroundColor: "#fbf6e3", alignSelf: 'flex-start' }]}>
+                      <Icon name="document-text" size={20} color="#b06000" />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={[styles.alertTitle, { color: "#7a4200" }]}>
+                        Pending QRIS Verifications
+                      </Text>
+                      <Text style={[styles.alertText, { color: "#b06000", marginTop: 4 }]}>
+                        {pendingQRISCount} payment proof(s) waiting for review
+                      </Text>
+                      <Button 
+                        title="Tinjau Pembayaran" 
+                        variant="outline" 
+                        style={[styles.alertViewButton, { borderColor: "#b06000" }]}
+                        onPress={() => router.push("/(admin)/transactions")} 
+                      />
+                    </View>
+                  </View>
+                </CardContent>
+              </Card>
+            )}
+
+</View>
 
         </View>
       </View>
+
+      {/* PAYMENT PROOF MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={paymentModalVisible}
+        onRequestClose={() => setPaymentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Bukti Pembayaran</Text>
+              <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
+                <Icon name="close" size={24} color={theme.colors.foreground} />
+              </TouchableOpacity>
+            </View>
+            {selectedPaymentProof && (
+              <Image
+                source={{ uri: selectedPaymentProof }}
+                style={styles.paymentProofImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -574,8 +693,11 @@ const styles = StyleSheet.create({
   },
   viewAllButton: {
     paddingHorizontal: 16,
-    height: 36,
+    minHeight: 40,
+    paddingVertical: 10,
     borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tableRowHeader: {
     flexDirection: "row",
@@ -649,14 +771,22 @@ const styles = StyleSheet.create({
   },
   primaryActionButton: {
     backgroundColor: theme.colors.primary,
-    height: 48,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   outlineActionButton: {
-    height: 48,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: "#fff",
     borderColor: "#e0e0e0",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   alertCard: {
     borderRadius: 16,
@@ -675,9 +805,92 @@ const styles = StyleSheet.create({
   },
   alertViewButton: {
     marginTop: 14,
-    height: 34,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderColor: "#fccbc7",
     backgroundColor: "#fff",
     borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // NEW STYLES FOR INVOICE PREVIEW
+  invoicePreviewCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ffe5cc",
+    backgroundColor: "#fffbf0",
+  },
+  invoicePreviewItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomColor: "#f1f3f4",
+  },
+  invoicePreviewCode: {
+    fontWeight: "700",
+    fontSize: 13,
+    color: theme.colors.foreground,
+  },
+  invoicePreviewCustomer: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    marginTop: 2,
+  },
+  invoicePreviewAmount: {
+    fontWeight: "700",
+    fontSize: 13,
+    color: "#b06000",
+  },
+  previewPhotoButton: {
+    marginTop: 4,
+    minHeight: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#b06000",
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewPhotoText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#fff",
+  },
+
+  // MODAL STYLES
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: "rgba(0, 0, 0, 0.8)", 
+    justifyContent: "center", 
+    alignItems: "center",
+    padding: 16,
+  },
+  modalContent: { 
+    backgroundColor: theme.colors.card, 
+    borderRadius: 16, 
+    width: "100%",
+    maxWidth: 500,
+    maxHeight: "80%",
+    overflow: "hidden",
+  },
+  modalHeader: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: "800", 
+    color: theme.colors.foreground 
+  },
+  paymentProofImage: { 
+    width: "100%", 
+    height: 400,
   },
 });
