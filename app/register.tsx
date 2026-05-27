@@ -216,12 +216,12 @@ export default function Register() {
 
             <View style={styles.field}>
               <View style={{ marginBottom: 8 }}>
-                <Label>Password</Label>
+                <Label>Kata Sandi</Label>
               </View>
               <Input
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Create a password"
+                placeholder="Buat kata sandi"
                 secureTextEntry
                 icon={<Icon name="lock-closed" size={18} color={theme.colors.mutedForeground} />}
                 style={styles.inputContainer}
@@ -230,12 +230,12 @@ export default function Register() {
 
             <View style={styles.field}>
               <View style={{ marginBottom: 8 }}>
-                <Label>Confirm Password</Label>
+                <Label>Konfirmasi Kata Sandi</Label>
               </View>
               <Input
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                placeholder="Repeat your password"
+                placeholder="Ulangi kata sandi"
                 secureTextEntry
                 icon={<Icon name="lock-closed" size={18} color={theme.colors.mutedForeground} />}
                 style={styles.inputContainer}
@@ -243,23 +243,23 @@ export default function Register() {
             </View>
 
             <Button
-              title="Create Account"
+              title="Buat Akun"
               onPress={handleSubmit}
               style={styles.signInButton}
             />
 
             <View style={styles.divider}>
               <View style={[styles.line, { backgroundColor: theme.colors.border }]} />
-              <Text style={styles.dividerText}>Already have an account?</Text>
+              <Text style={styles.dividerText}>Sudah punya akun?</Text>
               <View style={[styles.line, { backgroundColor: theme.colors.border }]} />
             </View>
 
             <TouchableOpacity onPress={() => router.push("/login")}> 
-              <Text style={styles.createAccountText}>Sign in instead</Text>
+              <Text style={styles.createAccountText}>Masuk saja</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push("/")} style={styles.backHome}>
-              <Text style={styles.backText}>← Back to home</Text>
+              <Text style={styles.backText}>← Kembali ke beranda</Text>
             </TouchableOpacity>
           </CardContent>
         </Card>

@@ -249,7 +249,7 @@ export default function AdminDashboard() {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 12, color: theme.colors.mutedForeground, fontWeight: "500" }}>Loading Dashboard Data...</Text>
+        <Text style={{ marginTop: 12, color: theme.colors.mutedForeground, fontWeight: "500" }}>Memuat data dashboard...</Text>
       </View>
     );
   }
@@ -263,10 +263,10 @@ export default function AdminDashboard() {
         {/* 1. HEADER SECTION */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.foreground }]}>
-            Admin Dashboard
+            Dasbor Admin
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>
-            Welcome back, here's what's happening today
+            Selamat datang kembali, berikut aktivitas hari ini
           </Text>
         </View>
 
@@ -278,13 +278,13 @@ export default function AdminDashboard() {
               <View style={[styles.iconCircle, { backgroundColor: "#fef3eb" }]}>
                 <Icon name="cash" size={20} color={theme.colors.primary} />
               </View>
-              <Text style={styles.cardTimeLabel}>Today</Text>
+              <Text style={styles.cardTimeLabel}>Hari Ini</Text>
               <View style={styles.cardBottomTextGroup}>
-                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}>
+                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}> 
                   Rp {totalSalesToday.toLocaleString("id-ID")}
                 </Text>
-                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}>
-                  Total Sales
+                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}> 
+                  Total Penjualan
                 </Text>
               </View>
             </CardContent>
@@ -293,16 +293,16 @@ export default function AdminDashboard() {
           {/* Card 2: Best Seller */}
           <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
             <CardContent style={styles.cardContentFlex}>
-              <View style={[styles.iconCircle, { backgroundColor: "#fef3eb" }]}>
+              <View style={[styles.iconCircle, { backgroundColor: "#fef3eb" }]}> 
                 <Icon name="trending-up" size={20} color={theme.colors.primary} />
               </View>
-              <Text style={styles.cardTimeLabel}>Top Item</Text>
+              <Text style={styles.cardTimeLabel}>Item Teratas</Text>
               <View style={styles.cardBottomTextGroup}>
                 <Text style={[styles.cardSmallTitle, { color: theme.colors.foreground }]} numberOfLines={1}>
                   {getBestSellingMenu()}
                 </Text>
-                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}>
-                  Best Seller
+                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}> 
+                  Terlaris
                 </Text>
               </View>
             </CardContent>
@@ -311,16 +311,16 @@ export default function AdminDashboard() {
           {/* Card 3: Pending Orders (renamed from Pending Confirmation) */}
           <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
             <CardContent style={styles.cardContentFlex}>
-              <View style={[styles.iconCircle, { backgroundColor: "#fce8e6" }]}>
+              <View style={[styles.iconCircle, { backgroundColor: "#fce8e6" }]}> 
                 <Icon name="time" size={20} color={theme.colors.destructive} />
               </View>
-              <Text style={[styles.cardTimeLabel, { color: theme.colors.destructive }]}>Alert</Text>
+              <Text style={[styles.cardTimeLabel, { color: theme.colors.destructive }]}>Peringatan</Text>
               <View style={styles.cardBottomTextGroup}>
-                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}>
+                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}> 
                   {pendingOrdersCount}
                 </Text>
-                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}>
-                  Pending Orders
+                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}> 
+                  Pesanan Tertunda
                 </Text>
               </View>
             </CardContent>
@@ -329,16 +329,16 @@ export default function AdminDashboard() {
           {/* Card 4: Pending QRIS Verification (NEW) */}
           <Card style={[styles.summaryCard, !isDesktop && styles.summaryCardMobile]}>
             <CardContent style={styles.cardContentFlex}>
-              <View style={[styles.iconCircle, { backgroundColor: "#fbf6e3" }]}>
+              <View style={[styles.iconCircle, { backgroundColor: "#fbf6e3" }]}> 
                 <Icon name="document-text" size={20} color="#b06000" />
               </View>
               <Text style={[styles.cardTimeLabel, { color: "#b06000" }]}>Verifikasi</Text>
               <View style={styles.cardBottomTextGroup}>
-                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}>
+                <Text style={[styles.cardNumber, { color: theme.colors.foreground }]}> 
                   {pendingQRISCount}
                 </Text>
-                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}>
-                  Pending QRIS
+                <Text style={[styles.cardLabel, { color: theme.colors.mutedForeground }]}> 
+                  QRIS Tertunda
                 </Text>
               </View>
             </CardContent>
@@ -354,23 +354,23 @@ export default function AdminDashboard() {
               <CardContent style={{ padding: 24 }}>
                 <View style={styles.tableHeaderSection}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
-                    Recent Transactions
+                    Transaksi Terbaru
                   </Text>
                   <Button title="View All" variant="outline" style={styles.viewAllButton} onPress={() => router.push("/(admin)/transactions")} />
                 </View>
 
                 {/* TABLE HEADERS */}
                 <View style={[styles.tableRowHeader, { borderBottomColor: theme.colors.border }]}>
-                  <Text style={[styles.thText, { flex: 2.2 }]}>Order ID</Text>
-                  <Text style={[styles.thText, { flex: 3.3 }]}>Items</Text>
+                  <Text style={[styles.thText, { flex: 2.2 }]}>ID Pesanan</Text>
+                  <Text style={[styles.thText, { flex: 3.3 }]}>Item</Text>
                   <Text style={[styles.thText, { flex: 1.5, textAlign: 'right' }]}>Total</Text>
                   <Text style={[styles.thText, { flex: 1.5, textAlign: 'center' }]}>Status</Text>
-                  <Text style={[styles.thText, { flex: 1.2, textAlign: 'right' }]}>Time</Text>
+                  <Text style={[styles.thText, { flex: 1.2, textAlign: 'right' }]}>Waktu</Text>
                 </View>
 
                 {/* TABLE BODY ROWS */}
                 {groupedTransactions.length === 0 ? (
-                  <Text style={{ textAlign: 'center', paddingVertical: 24, color: theme.colors.mutedForeground }}>No transactions recorded today</Text>
+                  <Text style={{ textAlign: 'center', paddingVertical: 24, color: theme.colors.mutedForeground }}>Tidak ada transaksi tercatat hari ini</Text>
                 ) : (
                   groupedTransactions.slice(0, 5).map((item, idx) => {
                     const statusStyle = getStatusStyle(item.status);
@@ -426,7 +426,7 @@ export default function AdminDashboard() {
             {pendingQRISCount > 0 && (
               <Card style={[styles.invoicePreviewCard, { marginTop: 18 }]}> 
                 <CardContent style={{ padding: 20 }}>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.foreground, marginBottom: 14 }]}>Recent QRIS Submissions</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.foreground, marginBottom: 14 }]}>Pengajuan QRIS Terbaru</Text>
                   {invoices.slice(0, 3).map((invoice, idx) => {
                     const subtotal = typeof invoice.subtotal === 'string' ? parseFloat(invoice.subtotal) : invoice.subtotal;
                     return (
@@ -464,7 +464,7 @@ export default function AdminDashboard() {
           {/* KOLOM KANAN: QUICK ACTIONS */}
           <View style={[styles.rightColumn, !isDesktop && { width: '100%', marginTop: 16 }]}>
             <Text style={[styles.sectionTitle, { color: theme.colors.foreground, marginBottom: 16 }]}>
-              Quick Actions
+              Aksi Cepat
             </Text>
             
             <View style={styles.actionsContainer}>
@@ -496,10 +496,10 @@ export default function AdminDashboard() {
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={[styles.alertTitle, { color: "#a51d24" }]}>
-                      Pending Order Actions
+                      Aksi Pesanan Tertunda
                     </Text>
                     <Text style={[styles.alertText, { color: "#cb2431", marginTop: 4 }]}>
-                      {pendingOrdersCount} orders waiting for verification
+                      {pendingOrdersCount} pesanan menunggu verifikasi
                     </Text>
                     <Button 
                       title="Konfirmasi Pesanan" 
@@ -522,10 +522,10 @@ export default function AdminDashboard() {
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <Text style={[styles.alertTitle, { color: "#7a4200" }]}>
-                        Pending QRIS Verifications
+                        Verifikasi QRIS Tertunda
                       </Text>
                       <Text style={[styles.alertText, { color: "#b06000", marginTop: 4 }]}>
-                        {pendingQRISCount} payment proof(s) waiting for review
+                        {pendingQRISCount} bukti pembayaran menunggu tinjauan
                       </Text>
                       <Button 
                         title="Tinjau Pembayaran" 

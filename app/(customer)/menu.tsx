@@ -196,7 +196,7 @@ export default function MenuPage() {
               <View style={styles.cartHeader}>
                 <View style={styles.row}>
                   <ShoppingCart size={20} color={theme.colors.primary} />
-                  <Text style={styles.cartTitle}>Your Cart</Text>
+                  <Text style={styles.cartTitle}>Keranjang</Text>
                 </View>
                 {totalItems > 0 && (
                   <View style={styles.badge}>
@@ -208,8 +208,8 @@ export default function MenuPage() {
               {cart.length === 0 ? (
                 <View style={styles.emptyCart}>
                    <ShoppingCart size={40} color={theme.colors.border} />
-                   <Text style={styles.emptyText}>No items selected</Text>
-                   <Text style={styles.emptySubText}>Please choose your menu</Text>
+                   <Text style={styles.emptyText}>Tidak ada item yang dipilih</Text>
+                   <Text style={styles.emptySubText}>Silakan pilih menu Anda</Text>
                 </View>
               ) : (
                 <View style={styles.cartContent}>

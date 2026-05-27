@@ -129,7 +129,7 @@ export default function ForgotPassword() {
                 <Text style={styles.linkText}>Kembali ke Login</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push("/reset-password")}> 
-                <Text style={styles.linkText}>Sudah punya token? Reset Password</Text>
+                <Text style={styles.linkText}>Sudah punya token? Atur Ulang Kata Sandi</Text>
               </TouchableOpacity>
             </View>
           </CardContent>

@@ -51,7 +51,7 @@ export function Footer() {
 
             <View style={styles.row}>
               <Icon name="mail" size={16} color="#F97316" />
-              <Text style={styles.text}>hello@ricebowland.com</Text>
+              <Text style={styles.text}>admin@ricebowland.com</Text>
             </View>
 
             <View style={styles.row}>

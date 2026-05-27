@@ -107,7 +107,7 @@ export default function ResetPassword() {
             </View>
 
             <CardTitle>
-              <Text style={styles.mainTitle}>Reset Password</Text>
+              <Text style={styles.mainTitle}>Atur Ulang Kata Sandi</Text>
             </CardTitle>
             <CardDescription>
               <Text style={styles.subTitle}>
@@ -161,7 +161,7 @@ export default function ResetPassword() {
 
             <View style={styles.field}>
               <View style={{ marginBottom: 8 }}>
-                <Label>Konfirmasi Password</Label>
+                <Label>Konfirmasi Kata Sandi</Label>
               </View>
               <Input
                 value={passwordConfirmation}
@@ -177,7 +177,7 @@ export default function ResetPassword() {
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <Button
-              title={loading ? "Memproses..." : "Reset Password"}
+              title={loading ? "Memproses..." : "Atur Ulang Kata Sandi"}
               onPress={handleSubmit}
               style={styles.actionButton}
             />

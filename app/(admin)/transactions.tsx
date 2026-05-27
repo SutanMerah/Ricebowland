@@ -451,7 +451,7 @@ export default function AdminTransactions() {
             </Card>
             <Card style={styles.summaryCard}>
               <CardContent>
-                <Text style={styles.summaryLabel}>Verified Transactions</Text>
+                <Text style={styles.summaryLabel}>Transaksi Terverifikasi</Text>
                 <Text style={styles.summaryValue}>{ordersSummary.completed}</Text>
               </CardContent>
             </Card>
@@ -673,7 +673,7 @@ export default function AdminTransactions() {
                           <View style={styles.infoRow}>
                             <Icon name="person-circle-outline" size={16} color={theme.colors.mutedForeground} />
                             <Text style={styles.infoText}>
-                            Pemilik Akun: <Text style={styles.boldText}>{invoice.user?.name || "Unknown"}</Text>
+                            Pemilik Akun: <Text style={styles.boldText}>{invoice.user?.name || "Tidak Diketahui"}</Text>
                             </Text>
                           </View>
                           

@@ -8,9 +8,9 @@ import { useAuth } from "@/components/system/AuthContext";
 
 const navItems = [
   { name: "Dashboard", path: "/(admin)/dashboard" },
-  { name: "Transactions", path: "/(admin)/transactions" },
-  { name: "Menu Management", path: "/(admin)/menu-management" }, // Mengikuti teks Figma asli
-  { name: "Reports", path: "/(admin)/reports" },
+  { name: "Transaksi", path: "/(admin)/transactions" },
+  { name: "Menu", path: "/(admin)/menu-management" }, // Mengikuti teks Figma asli
+  { name: "Laporan", path: "/(admin)/reports" },
 ];
 
 export default function AdminNavbar() {

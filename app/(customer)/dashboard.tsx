@@ -213,20 +213,20 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
       <View style={styles.header}>
         {/* 🚀 4. DINAMIS: Sapa pelanggan berdasarkan nama akun asli di database */}
         <Text style={[styles.title, { color: theme.colors.foreground }]}>
-          Hello, {user?.name || "Customer"}
+          Halo, {user?.name || "Pelanggan"}
         </Text>
-        <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>Welcome back to BowlHub</Text>
+        <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>Selamat Datang Kembali di Ricebowland</Text>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>Order Status</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>Status Pesanan</Text>
 
       {!hasOrder ? (
         <View style={styles.emptyCard}>
           <View style={styles.iconCircle}>
             <Icon name="bag-handle-outline" size={40} color={theme.colors.primary} />
           </View>
-          <Text style={styles.cardTitle}>No orders yet</Text>
-          <Text style={styles.cardSub}>Start ordering your favorite meals</Text>
+          <Text style={styles.cardTitle}>Belum ada pesanan</Text>
+          <Text style={styles.cardSub}>Mulai pesan makanan favorit Anda</Text>
           <Button title="Order Now" onPress={() => router.push("/(customer)/menu")} style={styles.buttonEmpty} />
         </View>
       ) : (
@@ -245,9 +245,6 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
                   <Text style={[styles.meta, { color: theme.colors.mutedForeground, marginTop: 4 }]}>
                     {formatFigmaDate(order.created_at)}
                   </Text>
-                  <Text style={[styles.meta, { color: theme.colors.mutedForeground }]}>
-                    Dine In
-                  </Text>
                 </View>
 
                 {/* BADGE STATUS */}
@@ -261,7 +258,7 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
 
               {/* ITEMS LIST */}
               <Text style={[styles.subTitle, { color: theme.colors.foreground, marginBottom: 8 }]}>
-                Order Items
+                Daftar Pesanan
               </Text>
 
               <View style={styles.items}>
@@ -290,7 +287,7 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
               </View>
 
               <View style={styles.actions}>
-                <Button title="Order Again" onPress={() => router.push("/(customer)/menu")} style={{ flex: 1 }} />
+                <Button title="Pesan Lagi" onPress={() => router.push("/(customer)/menu")} style={{ flex: 1 }} />
                 <Button title="Refresh Status" variant="outline" onPress={fetchOrdersFromLaravel} style={{ flex: 1 }} />
               </View>
             </CardContent>

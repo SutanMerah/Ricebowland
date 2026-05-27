@@ -18,7 +18,7 @@ export function Select({ value, onValueChange, items, style }: Props) {
         onValueChange={onValueChange}
         style={styles.picker}
       >
-        <Picker.Item label="Select option" value="" />
+        <Picker.Item label="Pilih opsi" value="" />
         {items.map((item) => (
           <Picker.Item
             key={item.value}

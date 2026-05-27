@@ -59,7 +59,7 @@ const handleLogout = async () => {
               style={styles.row}
             >
               <Icon name="bag-outline" size={18} color={theme.colors.foreground} />
-              <Text style={styles.link}>My Orders</Text>
+              <Text style={styles.link}>Riwayat Pesanan</Text>
             </TouchableOpacity>
 
             <Button
@@ -88,7 +88,7 @@ const handleLogout = async () => {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => { router.push("/(customer)/myorder"); setIsMenuOpen(false); }}>
-            <Text style={styles.mobileLink}>My Orders</Text>
+            <Text style={styles.mobileLink}>Pesanan Saya</Text>
           </TouchableOpacity>
 
           <Button
