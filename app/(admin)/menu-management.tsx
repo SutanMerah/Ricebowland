@@ -34,19 +34,30 @@ export default function AdminMenuManagement() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadMenus() {
+    async function loadMenus(showSpinner = true) {
       try {
-        setIsLoading(true);
+        if (showSpinner) {
+          setIsLoading(true);
+        }
         const response = await fetch(`${API_BASE_URL}/menus`);
         const data = await response.json();
         setMenus(Array.isArray(data) ? data : data.data || []);
       } catch (error) {
         console.error("Gagal memuat menu:", error);
       } finally {
-        setIsLoading(false);
+        if (showSpinner) {
+          setIsLoading(false);
+        }
       }
     }
-    loadMenus();
+
+    loadMenus(true);
+
+    const interval = setInterval(() => {
+      loadMenus(false);
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const pickImage = async () => {

@@ -44,9 +44,11 @@ export default function MenuPage() {
 
   const isDesktop = width >= 768;
 
-  const loadMenuItems = async () => {
+  const loadMenuItems = async (showSpinner = true) => {
     try {
-      setIsLoading(true);
+      if (showSpinner) {
+        setIsLoading(true);
+      }
       setLoadError(null);
 
       const response = await fetch(`${API_BASE_URL}/menus`);
@@ -63,12 +65,20 @@ export default function MenuPage() {
       setMenuItems([]);
       setLoadError(error?.message || "Gagal memuat menu. Silakan coba lagi.");
     } finally {
-      setIsLoading(false);
+      if (showSpinner) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadMenuItems();
+    loadMenuItems(true);
+
+    const interval = setInterval(() => {
+      loadMenuItems(false);
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const getItemQuantity = (id: number | string) =>

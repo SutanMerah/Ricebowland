@@ -74,11 +74,13 @@ export default function CustomerDashboardCombined() {
     return Object.values(groups).reverse(); 
   };
 
-const fetchOrdersFromLaravel = async () => {
+const fetchOrdersFromLaravel = async (showSpinner = true) => {
     // Jika user belum termuat (masih proses re-hydrate session), tunggu sebentar
     if (!user || !user.id) return; 
 
-    setLoading(true);
+    if (showSpinner) {
+      setLoading(true);
+    }
     try {
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: "GET",
@@ -115,45 +117,59 @@ const fetchOrdersFromLaravel = async () => {
     } catch (error) {
       console.error("Gagal mengambil data dari Laravel:", error);
     } finally {
-      setLoading(false);
+      if (showSpinner) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const loadMenuMap = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/menus`);
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const parsedMenus = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
+      const mapping = parsedMenus.reduce((acc: Record<number, { name: string; price: number }>, item: any) => {
+        if (item?.id != null) {
+          acc[Number(item.id)] = {
+            name: item.name ?? `Menu ID: ${item.id}`,
+            price: typeof item.price === "number" ? item.price : Number(item.price) || 0,
+          };
+        }
+        return acc;
+      }, {});
+
+      setMenuMap(mapping);
+    } catch (error) {
+      console.warn("Gagal memuat daftar menu untuk dashboard:", error);
     }
   };
 
   useEffect(() => {
-    async function loadMenuMap() {
-      try {
-        const response = await fetch(`${API_BASE_URL}/menus`);
-        if (!response.ok) return;
-
-        const data = await response.json();
-        const parsedMenus = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-          ? data.data
-          : [];
-
-        const mapping = parsedMenus.reduce((acc: Record<number, { name: string; price: number }>, item: any) => {
-          if (item?.id != null) {
-            acc[Number(item.id)] = {
-              name: item.name ?? `Menu ID: ${item.id}`,
-              price: typeof item.price === "number" ? item.price : Number(item.price) || 0,
-            };
-          }
-          return acc;
-        }, {});
-
-        setMenuMap(mapping);
-      } catch (error) {
-        console.warn("Gagal memuat daftar menu untuk dashboard:", error);
-      }
-    }
-
     loadMenuMap();
+
+    const menuInterval = setInterval(() => {
+      loadMenuMap();
+    }, 30000);
+
+    return () => clearInterval(menuInterval);
   }, []);
 
   // 🚀 Jalankan fetch ulang jika ada parameter order baru ATAU saat data user selesai dimuat ulang (anti-refresh)
   useEffect(() => {
-    fetchOrdersFromLaravel();
+    fetchOrdersFromLaravel(true);
+
+    const orderInterval = setInterval(() => {
+      fetchOrdersFromLaravel(false);
+    }, 30000);
+
+    return () => clearInterval(orderInterval);
   }, [params.hasOrder, user?.id, menuMap]); 
 
   const getStatusStyle = (status: string) => {

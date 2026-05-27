@@ -140,9 +140,11 @@ export default function AdminTransactions() {
   const isOrdersTab = activeTab === "orders";
   const isPaymentsTab = activeTab === "payments";
 
-  async function loadOrders() {
+  async function loadOrders(showSpinner = true) {
     try {
-      setIsLoading(true);
+      if (showSpinner) {
+        setIsLoading(true);
+      }
       setApiError(null);
       
       const response = await fetch(`${API_BASE_URL}/orders`, {
@@ -159,7 +161,9 @@ export default function AdminTransactions() {
       console.error("[DEBUG ERROR] Gagal memuat data transaksi:", error);
       setApiError("Gagal terhubung ke server Laravel. Pastikan backend menyala dan CORS sudah dikonfigurasi.");
     } finally {
-      setIsLoading(false);
+      if (showSpinner) {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -180,8 +184,15 @@ export default function AdminTransactions() {
   }
 
   useEffect(() => {
-    loadOrders();
+    loadOrders(true);
     loadInvoices();
+
+    const interval = setInterval(() => {
+      loadOrders(false);
+      loadInvoices();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const parseCartData = (cartDataString: string): ParsedCartItem[] => {

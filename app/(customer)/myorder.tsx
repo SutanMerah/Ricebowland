@@ -45,13 +45,17 @@ export default function MyOrders() {
     return Object.values(groups).reverse();
   };
 
-  const fetchCompletedOrders = async () => {
+  const fetchCompletedOrders = async (showSpinner = true) => {
     if (!user?.id) {
-      setLoading(false);
+      if (showSpinner) {
+        setLoading(false);
+      }
       return;
     }
 
-    setLoading(true);
+    if (showSpinner) {
+      setLoading(true);
+    }
     try {
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: "GET",
@@ -76,12 +80,20 @@ export default function MyOrders() {
       console.error("Gagal memuat pesanan selesai:", error);
       setOrders([]);
     } finally {
-      setLoading(false);
+      if (showSpinner) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchCompletedOrders();
+    fetchCompletedOrders(true);
+
+    const interval = setInterval(() => {
+      fetchCompletedOrders(false);
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [user?.id]);
 
   if (loading) {

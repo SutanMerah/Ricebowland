@@ -66,37 +66,47 @@ export default function AdminDashboard() {
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedPaymentProof, setSelectedPaymentProof] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      try {
+  const fetchDashboardData = async (showSpinner = true) => {
+    try {
+      if (showSpinner) {
         setIsLoading(true);
+      }
 
-        const [ordersRes, menusRes, invoicesRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/orders`),
-          fetch(`${API_BASE_URL}/menus`),
-          fetch(`${API_BASE_URL}/invoices/pending`)
-        ]);
+      const [ordersRes, menusRes, invoicesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/orders`),
+        fetch(`${API_BASE_URL}/menus`),
+        fetch(`${API_BASE_URL}/invoices/pending`)
+      ]);
 
-        const ordersData = await ordersRes.json();
-        const menusData = await menusRes.json();
-        const invoicesData = await invoicesRes.json();
+      const ordersData = await ordersRes.json();
+      const menusData = await menusRes.json();
+      const invoicesData = await invoicesRes.json();
 
-        // Ambil array langsung atau fallback data jika terbungkus objek
-        const orderList = Array.isArray(ordersData) ? ordersData : (ordersData.data || []);
-        const menuList = Array.isArray(menusData) ? menusData : (menusData.data || []);
-        const invoiceList = Array.isArray(invoicesData) ? invoicesData : (invoicesData.data || []);
+      // Ambil array langsung atau fallback data jika terbungkus objek
+      const orderList = Array.isArray(ordersData) ? ordersData : (ordersData.data || []);
+      const menuList = Array.isArray(menusData) ? menusData : (menusData.data || []);
+      const invoiceList = Array.isArray(invoicesData) ? invoicesData : (invoicesData.data || []);
 
-        setOrders(orderList);
-        setMenus(menuList);
-        setInvoices(invoiceList);
-      } catch (error) {
-        console.error("Gagal mengambil data dari API backend:", error);
-      } finally {
+      setOrders(orderList);
+      setMenus(menuList);
+      setInvoices(invoiceList);
+    } catch (error) {
+      console.error("Gagal mengambil data dari API backend:", error);
+    } finally {
+      if (showSpinner) {
         setIsLoading(false);
       }
     }
+  };
 
-    fetchDashboardData();
+  useEffect(() => {
+    fetchDashboardData(true);
+
+    const interval = setInterval(() => {
+      fetchDashboardData(false);
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Format penanggalan teks transaksi persis seperti di dashboard customer
