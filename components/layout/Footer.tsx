@@ -1,7 +1,38 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { apiFetch } from "@/lib/fetch";
+
+interface Contact {
+  id: number;
+  name: string;
+  phone_number: string;
+  is_active: boolean;
+}
 
 export function Footer() {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadContacts();
+  }, []);
+
+  const loadContacts = async () => {
+    try {
+      const data = await apiFetch("/public/contacts");
+      const activeContacts = (Array.isArray(data) ? data : data.data || [])
+        .filter((c: Contact) => c.is_active)
+        .slice(0, 3); // Ambil hanya 3 kontak pertama
+      setContacts(activeContacts);
+    } catch (error) {
+      console.error("Gagal memuat kontak untuk footer:", error);
+      setContacts([]); // Fallback ke array kosong
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <View style={styles.footer}>
       <View style={styles.container}>
@@ -44,22 +75,30 @@ export function Footer() {
           <View style={styles.col}>
             <Text style={styles.title}>Hubungi Kami</Text>
 
-            <View style={styles.row}>
-              <Icon name="call" size={16} color="#F97316" />
-              <Text style={styles.text}>(555) 123-4567</Text>
-            </View>
+            {!isLoading && contacts.length > 0 ? (
+              // Display dynamic contacts
+              contacts.map((contact) => (
+                <View key={contact.id} style={styles.row}>
+                  <Icon name="call" size={16} color="#F97316" />
+                  <Text style={styles.text}>{contact.phone_number}</Text>
+                </View>
+              ))
+            ) : (
+              // Fallback if no contacts available
+              <>
+                <View style={styles.row}>
+                  <Icon name="mail" size={16} color="#F97316" />
+                  <Text style={styles.text}>admin@ricebowland.com</Text>
+                </View>
 
-            <View style={styles.row}>
-              <Icon name="mail" size={16} color="#F97316" />
-              <Text style={styles.text}>admin@ricebowland.com</Text>
-            </View>
-
-            <View style={styles.row}>
-              <Icon name="location" size={16} color="#F97316" />
-              <Text style={styles.text}>
-                Gedung N, Politeknik Negeri Medan
-              </Text>
-            </View>
+                <View style={styles.row}>
+                  <Icon name="location" size={16} color="#F97316" />
+                  <Text style={styles.text}>
+                    Gedung N, Politeknik Negeri Medan
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
 
           {/* Ikuti Kami */}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, TouchableOpacity, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, TouchableOpacity, Platform, Alert, Modal } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -32,6 +32,7 @@ export default function AdminMenuManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | string | null>(null);
 
   useEffect(() => {
     async function loadMenus(showSpinner = true) {
@@ -146,15 +147,21 @@ const createMenuItem = async () => {
     }
   };
 
-  const removeMenu = async (menuId: number | string) => {
-    setMenus((current) => current.filter((item) => item.id !== menuId));
+  const handleDeleteMenu = (menuId: number | string) => {
+    setDeleteConfirmId(menuId);
+  };
 
+  const confirmDeleteMenu = async (menuId: number | string) => {
     try {
       await fetch(`${API_BASE_URL}/menus/${menuId}`, {
         method: "DELETE",
       });
+      setMenus((current) => current.filter((item) => item.id !== menuId));
+      setDeleteConfirmId(null);
     } catch (error) {
       console.error("Gagal menghapus menu:", error);
+      Alert.alert("Error", "Gagal menghapus menu");
+      setDeleteConfirmId(null);
     }
   };
 
@@ -233,7 +240,7 @@ const createMenuItem = async () => {
                 <Button
                   title="Hapus"
                   variant="outline"
-                  onPress={() => removeMenu(menu.id)}
+                  onPress={() => handleDeleteMenu(menu.id)}
                   style={[styles.deleteButton, !isDesktop && { width: '100%' }]}
                 />
               </View>
@@ -241,6 +248,41 @@ const createMenuItem = async () => {
           </Card>
         ))
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteConfirmId !== null}
+        onRequestClose={() => setDeleteConfirmId(null)}
+      >
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmBox}>
+            <Text style={styles.confirmTitle}>Hapus Menu?</Text>
+            <Text style={styles.confirmMessage}>
+              Apakah Anda yakin ingin menghapus menu ini? Tindakan ini tidak dapat dibatalkan.
+            </Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                style={styles.confirmCancelBtn}
+                onPress={() => setDeleteConfirmId(null)}
+              >
+                <Text style={styles.confirmCancelText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmActionBtn, { backgroundColor: theme.colors.destructive }]}
+                onPress={() => {
+                  if (deleteConfirmId !== null) {
+                    confirmDeleteMenu(deleteConfirmId);
+                  }
+                }}
+              >
+                <Text style={styles.confirmActionText}>Hapus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -285,5 +327,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600" as any,
     color: theme.colors.foreground,
+  },
+
+  // ===== DELETE CONFIRMATION MODAL =====
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  confirmBox: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: 24,
+    width: "90%",
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+    marginBottom: 12,
+  },
+  confirmMessage: {
+    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  confirmActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  confirmCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  confirmCancelText: {
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  confirmActionBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  confirmActionText: {
+    fontWeight: "600",
+    color: "#fff",
   },
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, useWindowDimensions, Modal, Image, TouchableOpacity, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, useWindowDimensions, Modal, Image, TouchableOpacity, Platform, Pressable } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -137,8 +137,20 @@ export default function AdminTransactions() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedPaymentProof, setSelectedPaymentProof] = useState<string | null>(null);
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertMessage, setCustomAlertMessage] = useState("");
   const isOrdersTab = activeTab === "orders";
   const isPaymentsTab = activeTab === "payments";
+  // State untuk Custom Confirmation Pop-up
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: "",
+    message: "",
+    confirmText: "",
+    cancelText: "Batal",
+    type: "default", // 'default' (biru/hijau) atau 'destructive' (merah)
+    onConfirm: () => {},
+  });
 
   async function loadOrders(showSpinner = true) {
     try {
@@ -283,7 +295,7 @@ export default function AdminTransactions() {
     try {
       for (const rawId of orderGroup.raw_ids) {
         const response = await fetch(`${API_BASE_URL}/orders/${rawId}`, {
-          method: 'PUT',
+          method: 'PATCH',
           mode: 'cors',
           headers: {
             "Accept": "application/json",
@@ -299,7 +311,8 @@ export default function AdminTransactions() {
         current.map((order) => (orderGroup.raw_ids.includes(order.id) ? { ...order, status: target } : order))
       );
 
-      Alert.alert("Sukses", "Status pesanan telah diperbarui.");
+      setCustomAlertMessage("Sukses\n\nStatus pesanan telah diperbarui.");
+      setCustomAlertVisible(true);
       setSelectedStatus((prev) => {
         const newState = { ...prev };
         delete newState[orderGroup.id.toString()];
@@ -307,61 +320,84 @@ export default function AdminTransactions() {
       });
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Gagal memperbarui status pesanan.");
+      setCustomAlertMessage("Error\n\nGagal memperbarui status pesanan.");
+      setCustomAlertVisible(true);
       setRawOrders(previousRawOrders);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const approveInvoice = async (invoiceId: number) => {
-    setIsUpdating(true);
+const approveInvoice = (invoiceId: number) => {
+    setConfirmConfig({
+      title: "Setujui Invoice?",
+      message: "Apakah Anda yakin ingin menyetujui invoice ini? Pesanan akan langsung diproses.",
+      confirmText: "Setujui",
+      cancelText: "Batal",
+      type: "default",
+      onConfirm: async () => {
+        setIsUpdating(true);
+        try {
+          const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/approve`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+            },
+          });
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/approve`, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-      });
+          if (!response.ok) throw new Error("Gagal menyetujui invoice.");
 
-      if (!response.ok) throw new Error("Gagal menyetujui invoice.");
-
-      setInvoices((current) => current.filter((inv) => inv.id !== invoiceId));
-      Alert.alert("Sukses", "Invoice telah disetujui.");
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Gagal menyetujui invoice.");
-    } finally {
-      setIsUpdating(false);
-    }
+          setInvoices((current) => current.filter((inv) => inv.id !== invoiceId));
+          setCustomAlertMessage("Sukses\n\nInvoice telah disetujui.");
+          setCustomAlertVisible(true);
+        } catch (error) {
+          console.error(error);
+          setCustomAlertMessage("Error\n\nGagal menyetujui invoice.");
+          setCustomAlertVisible(true);
+        } finally {
+          setIsUpdating(false);
+        }
+      }
+    });
+    setConfirmVisible(true);
   };
 
-  const cancelInvoice = async (invoiceId: number) => {
-    setIsUpdating(true);
+  const cancelInvoice = (invoiceId: number) => {
+    setConfirmConfig({
+      title: "Batalkan Invoice?",
+      message: "Apakah Anda yakin ingin membatalkan invoice ini? Tindakan ini tidak dapat dibatalkan.",
+      confirmText: "Batalkan",
+      cancelText: "Jangan",
+      type: "destructive",
+      onConfirm: async () => {
+        setIsUpdating(true);
+        try {
+          const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/cancel`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+            },
+          });
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/cancel`, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-      });
+          if (!response.ok) throw new Error("Gagal membatalkan invoice.");
 
-      if (!response.ok) throw new Error("Gagal membatalkan invoice.");
-
-      setInvoices((current) => current.filter((inv) => inv.id !== invoiceId));
-      Alert.alert("Sukses", "Invoice telah dibatalkan.");
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Gagal membatalkan invoice.");
-    } finally {
-      setIsUpdating(false);
-    }
+          setInvoices((current) => current.filter((inv) => inv.id !== invoiceId));
+          setCustomAlertMessage("Sukses\n\nInvoice telah dibatalkan.");
+          setCustomAlertVisible(true);
+        } catch (error) {
+          console.error(error);
+          setCustomAlertMessage("Error\n\nGagal membatalkan invoice.");
+          setCustomAlertVisible(true);
+        } finally {
+          setIsUpdating(false);
+        }
+      }
+    });
+    setConfirmVisible(true);
   };
 
   if (isLoading) {
@@ -780,28 +816,83 @@ export default function AdminTransactions() {
         </>
       )}
 
-      {/* PAYMENT PROOF MODAL */}
+{/* PAYMENT PROOF LIGHTBOX */}
       <Modal
         animationType="fade"
         transparent={true}
         visible={paymentModalVisible}
         onRequestClose={() => setPaymentModalVisible(false)}
       >
+        <Pressable 
+          style={styles.modalOverlay} 
+          onPress={() => setPaymentModalVisible(false)}
+        >
+          {selectedPaymentProof && (
+            <Image
+              source={{ uri: selectedPaymentProof }}
+              style={styles.paymentProofLightbox}
+              resizeMode="contain"
+            />
+          )}
+        </Pressable>
+      </Modal>
+
+      {/* CUSTOM ALERT MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={customAlertVisible}
+        onRequestClose={() => setCustomAlertVisible(false)}
+      >
+        <Pressable
+          style={styles.customAlertOverlay}
+          onPress={() => setCustomAlertVisible(false)}
+        >
+          <View style={styles.customAlertBox}>
+            <Text style={styles.customAlertText}>{customAlertMessage}</Text>
+            <Button
+              title="OK"
+              onPress={() => setCustomAlertVisible(false)}
+              style={styles.customAlertButton}
+              variant="default"
+            />
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* CUSTOM CONFIRMATION MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={confirmVisible}
+        onRequestClose={() => setConfirmVisible(false)}
+      >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Bukti Pembayaran</Text>
-              <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
-                <Icon name="close" size={24} color={theme.colors.foreground} />
+          <View style={styles.confirmBox}>
+            <Text style={styles.confirmTitle}>{confirmConfig.title}</Text>
+            <Text style={styles.confirmMessage}>{confirmConfig.message}</Text>
+            
+            <View style={styles.confirmActions}>
+              <TouchableOpacity 
+                style={styles.confirmCancelBtn} 
+                onPress={() => setConfirmVisible(false)}
+              >
+                <Text style={styles.confirmCancelText}>{confirmConfig.cancelText}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.confirmActionBtn, 
+                  confirmConfig.type === 'destructive' ? { backgroundColor: theme.colors.destructive } : { backgroundColor: theme.colors.primary }
+                ]} 
+                onPress={() => {
+                  setConfirmVisible(false);
+                  confirmConfig.onConfirm(); // Eksekusi API di sini
+                }}
+              >
+                <Text style={styles.confirmActionText}>{confirmConfig.confirmText}</Text>
               </TouchableOpacity>
             </View>
-            {selectedPaymentProof && (
-              <Image
-                source={{ uri: selectedPaymentProof }}
-                style={styles.paymentProofImage}
-                resizeMode="contain"
-              />
-            )}
           </View>
         </View>
       </Modal>
@@ -918,13 +1009,106 @@ const styles = StyleSheet.create({
   summaryInfoValue: { fontSize: 14, fontWeight: "700", color: theme.colors.foreground },
 
   // MODAL STYLES
+// --- GANTI BAGIAN MODAL STYLES LAMA DENGAN INI ---
   modalOverlay: { 
     flex: 1, 
-    backgroundColor: "rgba(0, 0, 0, 0.8)", 
+    backgroundColor: "rgba(0, 0, 0, 0.85)", // Saya buat sedikit lebih pekat agar fokus ke gambar
     justifyContent: "center", 
     alignItems: "center",
-    padding: 16,
   },
+  paymentProofLightbox: { 
+    width: "90%",  // Memberikan sedikit ruang bernafas di kiri-kanan
+    height: "90%", // Memberikan sedikit ruang bernafas di atas-bawah
+  },
+
+  errorCard: { marginBottom: spacing.lg, borderColor: theme.colors.destructive },
+  errorText: { color: theme.colors.destructive, fontWeight: "600" },
+
+  // CUSTOM ALERT STYLES
+  customAlertOverlay: { 
+    flex: 1, 
+    backgroundColor: "rgba(0, 0, 0, 0.5)", 
+    justifyContent: "center", 
+    alignItems: "center",
+  },
+  customAlertBox: { 
+    backgroundColor: theme.colors.card, 
+    borderRadius: 16, 
+    padding: 24, 
+    width: "85%",
+    maxWidth: 400,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  customAlertText: { 
+    fontSize: 16, 
+    color: theme.colors.foreground, 
+    textAlign: "center", 
+    marginBottom: 20, 
+    lineHeight: 24,
+  },
+  customAlertButton: { 
+    minWidth: 100, 
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+
+confirmBox: {
+    backgroundColor: theme.colors.card, // Menggunakan warna tema yang sudah ada
+    borderRadius: 16,
+    padding: 24,
+    width: "90%",
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+    marginBottom: 12,
+  },
+  confirmMessage: {
+    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  confirmActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  confirmCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  confirmCancelText: {
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  confirmActionBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  confirmActionText: {
+    fontWeight: "600",
+    color: "#fff",
+  },
+
+
+
+
+
   modalContent: { 
     backgroundColor: theme.colors.card, 
     borderRadius: 16, 
@@ -942,7 +1126,4 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 18, fontWeight: "700", color: theme.colors.foreground },
   paymentProofImage: { width: "100%", height: "100%", borderRadius: 16 },
-
-  errorCard: { marginBottom: spacing.lg, borderColor: theme.colors.destructive },
-  errorText: { color: theme.colors.destructive, fontWeight: "600" },
 });

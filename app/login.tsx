@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   useWindowDimensions,
+  Modal,
+  Pressable,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -35,11 +37,14 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertMessage, setCustomAlertMessage] = useState("");
 
 
 const handleSubmit = async () => {
     if (!email || !password) {
-      alert("Harap isi email dan password!");
+      setCustomAlertMessage("Harap isi email dan password!");
+      setCustomAlertVisible(true);
       return;
     }
 
@@ -91,7 +96,8 @@ const handleSubmit = async () => {
 
     } catch (error: any) {
       console.error("Error Login:", error);
-      alert("Login Gagal: " + error.message);
+      setCustomAlertMessage("Login Gagal: " + error.message);
+      setCustomAlertVisible(true);
     }
   };
 
@@ -190,6 +196,29 @@ const handleSubmit = async () => {
           </CardContent>
         </Card>
       </ScrollView>
+
+      {/* CUSTOM ALERT MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={customAlertVisible}
+        onRequestClose={() => setCustomAlertVisible(false)}
+      >
+        <Pressable
+          style={styles.customAlertOverlay}
+          onPress={() => setCustomAlertVisible(false)}
+        >
+          <View style={styles.customAlertBox}>
+            <Text style={styles.customAlertText}>{customAlertMessage}</Text>
+            <Button
+              title="OK"
+              onPress={() => setCustomAlertVisible(false)}
+              style={styles.customAlertButton}
+              variant="default"
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -300,5 +329,36 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: theme.colors.mutedForeground,
     fontSize: 14,
+  },
+
+  // CUSTOM ALERT STYLES
+  customAlertOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  customAlertBox: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: 24,
+    width: "85%",
+    maxWidth: 400,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  customAlertText: {
+    fontSize: 16,
+    color: theme.colors.foreground,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  customAlertButton: {
+    minWidth: 100,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
 });

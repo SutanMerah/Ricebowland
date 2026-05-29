@@ -3,16 +3,10 @@
     "name": "Ricebowland",
     "slug": "Ricebowland",
     "version": "1.0.0",
-    "scheme": "myapp-scheme",
+    "scheme": "ricebowland",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true
     },
@@ -21,16 +15,39 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.sutanmerah.Ricebowland"
+      "package": "com.sutanmerah.Ricebowland",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true, // Sangat krusial agar Android memverifikasi link ini secara otomatis
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "http"
+            },
+            {
+              "scheme": "https"
+            },
+            {
+              "host": "ricebowland.42web.io"
+            },
+            {
+              "pathPrefix": "/dashboard"
+            }
+          ]
+        }
+      ]
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      "react-native-compressor"
+      "expo-router"
     ],
     "extra": {
       "router": {},

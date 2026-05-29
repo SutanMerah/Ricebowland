@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, Modal, Pressable } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -41,6 +41,8 @@ export default function AdminReports() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reportGenerated, setReportGenerated] = useState(false);
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertMessage, setCustomAlertMessage] = useState("");
 
   useEffect(() => {
     async function loadOrders() {
@@ -56,7 +58,8 @@ export default function AdminReports() {
         setOrders(orderList);
       } catch (error) {
         console.error("Gagal memuat data laporan bisnis:", error);
-        Alert.alert("Error", "Gagal mengambil data transaksi dari server backend Laravel.");
+        setCustomAlertMessage("Gagal mengambil data transaksi dari server backend Laravel.");
+        setCustomAlertVisible(true);
       } finally {
         setIsLoading(false);
       }
@@ -209,6 +212,29 @@ export default function AdminReports() {
           </CardContent>
         </Card>
       )}
+
+      {/* CUSTOM ALERT MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={customAlertVisible}
+        onRequestClose={() => setCustomAlertVisible(false)}
+      >
+        <Pressable
+          style={styles.customAlertOverlay}
+          onPress={() => setCustomAlertVisible(false)}
+        >
+          <View style={styles.customAlertBox}>
+            <Text style={styles.customAlertText}>{customAlertMessage}</Text>
+            <Button
+              title="OK"
+              onPress={() => setCustomAlertVisible(false)}
+              style={styles.customAlertButton}
+              variant="default"
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -236,4 +262,35 @@ const styles = StyleSheet.create({
   topItemRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   topItemName: { fontWeight: "700", color: theme.colors.foreground },
   topItemRevenue: { color: theme.colors.primary, fontWeight: "600" },
+
+  // CUSTOM ALERT STYLES
+  customAlertOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  customAlertBox: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: 24,
+    width: "85%",
+    maxWidth: 400,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  customAlertText: {
+    fontSize: 16,
+    color: theme.colors.foreground,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  customAlertButton: {
+    minWidth: 100,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
 });

@@ -8,7 +8,9 @@ import {
   useWindowDimensions,
   Image,
   Platform,
-  Linking, // 🚀 Tambahan untuk deteksi Web vs Mobile
+  Linking,
+  Modal,
+  Pressable,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/components/system/AuthContext";
@@ -61,6 +63,8 @@ export default function PurchasingPage() {
   // State Upload Bukti Transfer
   const [paymentProof, setPaymentProof] = useState<string | null>(null);
   const [paymentProofName, setPaymentProofName] = useState<string | null>(null); // 🚀 Tambahan nama file
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertMessage, setCustomAlertMessage] = useState("");
 
   const getSubtotal = () => cartItems.reduce((t, i) => t + i.price * i.quantity, 0);
   const formatIDR = (price: number) => `Rp ${price.toLocaleString("id-ID")}`;
@@ -105,7 +109,8 @@ export default function PurchasingPage() {
 
   const handleConfirmOrder = async () => {
     if (!phoneNumber) {
-      alert("Nomor Handphone wajib diisi untuk koordinasi pengantaran.");
+      setCustomAlertMessage("Nomor Handphone wajib diisi untuk koordinasi pengantaran.");
+      setCustomAlertVisible(true);
       return;
     }
 
@@ -135,7 +140,8 @@ export default function PurchasingPage() {
         setCurrentInvoice(result.data);
         setStep("qris"); 
       } catch (error: any) {
-        alert(error.message);
+        setCustomAlertMessage(error.message);
+        setCustomAlertVisible(true);
       }
       return;
     }
@@ -166,10 +172,12 @@ export default function PurchasingPage() {
       });
 
       await Promise.all(orderPromises);
-      alert("Pesanan COD berhasil disimpan!");
+      setCustomAlertMessage("Pesanan COD berhasil disimpan!");
+      setCustomAlertVisible(true);
       router.push({ pathname: "/(customer)/dashboard", params: { hasOrders: "true" } });
     } catch (error: any) {
-      alert("Gagal memproses pesanan COD: " + error.message);
+      setCustomAlertMessage("Gagal memproses pesanan COD: " + error.message);
+      setCustomAlertVisible(true);
     }
   };
 
@@ -189,7 +197,8 @@ export default function PurchasingPage() {
   // 🚀 FUNGSI UPLOAD YANG SUDAH DIPERBAIKI
   const handleDonePayment = async () => {
     if (!paymentProof || !paymentProofName) {
-      alert("Harap unggah bukti transfer terlebih dahulu sebelum melanjutkan.");
+      setCustomAlertMessage("Harap unggah bukti transfer terlebih dahulu sebelum melanjutkan.");
+      setCustomAlertVisible(true);
       return;
     }
 
@@ -227,7 +236,8 @@ export default function PurchasingPage() {
       
       setStep("waiting");
     } catch (error: any) {
-      alert("Terjadi kesalahan saat upload: " + error.message);
+      setCustomAlertMessage("Terjadi kesalahan saat upload: " + error.message);
+      setCustomAlertVisible(true);
       console.error(error);
     } finally {
       setIsSubmittingProof(false);
@@ -309,9 +319,10 @@ export default function PurchasingPage() {
 
           Linking.openURL(
           `https://wa.me/6281265563773?text=${message}`
-          ).catch((err) =>
-          alert("Gagal membuka WhatsApp. Pastikan aplikasi terinstal.")
-          );
+          ).catch((err) => {
+            setCustomAlertMessage("Gagal membuka WhatsApp. Pastikan aplikasi terinstal.");
+            setCustomAlertVisible(true);
+          });
         }} 
         variant="outline" 
         style={{ marginTop: 10, width: "100%" }} 
@@ -340,9 +351,10 @@ export default function PurchasingPage() {
   }
   
   return (
-    <ScrollView style={[styles.screen, { backgroundColor: c.background }]}>
-      <View style={styles.mainWrapper}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={[styles.screen, { backgroundColor: c.background }]}>
+        <View style={styles.mainWrapper}>
+          <TouchableOpacity style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={18} color={c.mutedForeground} />
           <Text style={[styles.backText, { color: c.mutedForeground }]}>Kembali ke Menu</Text>
         </TouchableOpacity>
@@ -470,8 +482,32 @@ export default function PurchasingPage() {
             </CardContent>
           </Card>
         </View>
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+
+      {/* CUSTOM ALERT MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={customAlertVisible}
+        onRequestClose={() => setCustomAlertVisible(false)}
+      >
+        <Pressable
+          style={styles.customAlertOverlay}
+          onPress={() => setCustomAlertVisible(false)}
+        >
+          <View style={styles.customAlertBox}>
+            <Text style={styles.customAlertText}>{customAlertMessage}</Text>
+            <Button
+              title="OK"
+              onPress={() => setCustomAlertVisible(false)}
+              style={styles.customAlertButton}
+              variant="default"
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
@@ -574,4 +610,35 @@ const styles = StyleSheet.create({
   uploadPlaceholder: { flex: 1, justifyContent: "center", alignItems: "center", gap: 8 },
   uploadText: { fontSize: 12, color: theme.colors.mutedForeground },
   previewImage: { width: "100%", height: "100%", resizeMode: "cover" },
+
+  // CUSTOM ALERT STYLES
+  customAlertOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  customAlertBox: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: 24,
+    width: "85%",
+    maxWidth: 400,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  customAlertText: {
+    fontSize: 16,
+    color: theme.colors.foreground,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  customAlertButton: {
+    minWidth: 100,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
 });

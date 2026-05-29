@@ -62,6 +62,14 @@ const handleLogout = async () => {
               <Text style={styles.link}>Riwayat Pesanan</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              onPress={() => router.push("/(customer)/support")}
+              style={styles.row}
+            >
+              <Icon name="call" size={18} color={theme.colors.foreground} />
+              <Text style={styles.link}>Hubungi CS</Text>
+            </TouchableOpacity>
+
             <Button
               title="Logout"
               variant="outline"
@@ -89,6 +97,10 @@ const handleLogout = async () => {
 
           <TouchableOpacity onPress={() => { router.push("/(customer)/myorder"); setIsMenuOpen(false); }}>
             <Text style={styles.mobileLink}>Pesanan Saya</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => { router.push("/(customer)/support"); setIsMenuOpen(false); }}>
+            <Text style={styles.mobileLink}>Hubungi CS</Text>
           </TouchableOpacity>
 
           <Button

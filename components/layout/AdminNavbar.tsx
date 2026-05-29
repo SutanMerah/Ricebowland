@@ -11,6 +11,7 @@ const navItems = [
   { name: "Transaksi", path: "/(admin)/transactions" },
   { name: "Menu", path: "/(admin)/menu-management" }, // Mengikuti teks Figma asli
   { name: "Laporan", path: "/(admin)/reports" },
+  { name: "Kelola CS", path: "/(admin)/contacts" },
 ];
 
 export default function AdminNavbar() {
