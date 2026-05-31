@@ -136,7 +136,8 @@ export default function PurchasingPage() {
         setCurrentInvoice(result.data);
         setStep("qris"); 
       } catch (error: any) {
-        setCustomAlertMessage(error.message);
+        const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
+        setCustomAlertMessage(errorMessage);
         setCustomAlertVisible(true);
       }
       return;
@@ -171,7 +172,8 @@ export default function PurchasingPage() {
       setCustomAlertVisible(true);
       router.push({ pathname: "/(customer)/dashboard", params: { hasOrders: "true" } });
     } catch (error: any) {
-      setCustomAlertMessage("Gagal memproses pesanan COD: " + error.message);
+      const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
+      setCustomAlertMessage("Gagal memproses pesanan COD: " + errorMessage);
       setCustomAlertVisible(true);
     }
   };
@@ -225,7 +227,8 @@ export default function PurchasingPage() {
       
       setStep("waiting");
     } catch (error: any) {
-      setCustomAlertMessage("Terjadi kesalahan saat upload: " + error.message);
+      const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
+      setCustomAlertMessage("Terjadi kesalahan saat upload: " + errorMessage);
       setCustomAlertVisible(true);
       console.error(error);
     } finally {

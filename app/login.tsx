@@ -88,7 +88,8 @@ const handleSubmit = async () => {
 
     } catch (error: any) {
       console.error("Error Login:", error);
-      setCustomAlertMessage("Login Gagal: " + error.message);
+      const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
+      setCustomAlertMessage("Login Gagal: " + errorMessage);
       setCustomAlertVisible(true);
     }
   };

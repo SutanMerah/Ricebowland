@@ -54,7 +54,8 @@ export default function ForgotPassword() {
       setMessage(result?.message || "Link reset password telah dikirim ke email Anda.");
     } catch (err: any) {
       console.error("Forgot Password Error:", err);
-      setError(err?.message || "Terjadi kesalahan saat mengirim permintaan.");
+      const errorMessage = err.body?.message || err.body?.error || err.message || "Terjadi kesalahan pada server";
+      setError(errorMessage || "Terjadi kesalahan saat mengirim permintaan.");
     } finally {
       setLoading(false);
     }

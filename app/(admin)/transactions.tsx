@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { Select } from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system/spacing";
 import { apiFetch } from "@/lib/fetch";
@@ -146,6 +147,15 @@ export default function AdminTransactions() {
     type: "default", // 'default' (biru/hijau) atau 'destructive' (merah)
     onConfirm: () => {},
   });
+  // State untuk Pembatalan dengan alasan
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<{
+    type: "order" | "invoice" | null;
+    orderGroup?: GroupedOrder | null;
+    invoiceId?: number | null;
+  }>({ type: null });
 
   async function loadOrders(showSpinner = true) {
     try {
@@ -290,6 +300,15 @@ export default function AdminTransactions() {
 
     if (!target) return;
 
+    // Intercept cancellation intent: if target is 'cancelled', open reason modal instead
+    if (target === "cancelled") {
+      setCancelTarget({ type: "order", orderGroup });
+      setCancelReason("");
+      setCancelError(null);
+      setCancelModalVisible(true);
+      return;
+    }
+
     setIsUpdating(true);
     const previousRawOrders = [...rawOrders];
 
@@ -352,32 +371,72 @@ const approveInvoice = (invoiceId: number) => {
   };
 
   const cancelInvoice = (invoiceId: number) => {
-    setConfirmConfig({
-      title: "Batalkan Invoice?",
-      message: "Apakah Anda yakin ingin membatalkan invoice ini? Tindakan ini tidak dapat dibatalkan.",
-      confirmText: "Batalkan",
-      cancelText: "Jangan",
-      type: "destructive",
-      onConfirm: async () => {
-        setIsUpdating(true);
-        try {
-          await apiFetch(`/invoices/${invoiceId}/cancel`, {
-            method: 'POST',
-          });
+    // Open cancel modal to require reason before cancelling invoice
+    setCancelTarget({ type: "invoice", invoiceId });
+    setCancelReason("");
+    setCancelError(null);
+    setCancelModalVisible(true);
+  };
 
-          setInvoices((current) => current.filter((inv) => inv.id !== invoiceId));
-          setCustomAlertMessage("Sukses\n\nInvoice telah dibatalkan.");
-          setCustomAlertVisible(true);
-        } catch (error) {
-          console.error(error);
-          setCustomAlertMessage("Error\n\nGagal membatalkan invoice.");
-          setCustomAlertVisible(true);
-        } finally {
-          setIsUpdating(false);
+  const performCancel = async () => {
+    // Validation
+    if (!cancelReason || cancelReason.trim().length < 5) {
+      setCancelError("Alasan pembatalan wajib diisi minimum 5 karakter!");
+      return;
+    }
+
+    setCancelError(null);
+    setIsUpdating(true);
+
+    try {
+      if (cancelTarget.type === "order" && cancelTarget.orderGroup) {
+        // call cancel endpoint for each raw id
+        for (const rawId of cancelTarget.orderGroup.raw_ids) {
+          await apiFetch(`/orders/${rawId}/cancel`, {
+            method: "POST",
+            body: JSON.stringify({ reason: cancelReason }),
+          });
         }
+
+        // Update local state
+        setRawOrders((current) =>
+          current.map((order) =>
+            cancelTarget.orderGroup && cancelTarget.orderGroup.raw_ids.includes(order.id)
+              ? { ...order, status: "cancelled" }
+              : order
+          )
+        );
+
+        setCustomAlertMessage("Sukses\n\nPesanan telah dibatalkan.");
+        setCustomAlertVisible(true);
+        // clear selected status for this group
+        setSelectedStatus((prev) => {
+          const newState = { ...prev };
+          delete newState[cancelTarget.orderGroup!.id.toString()];
+          return newState;
+        });
+      } else if (cancelTarget.type === "invoice" && cancelTarget.invoiceId) {
+        await apiFetch(`/invoices/${cancelTarget.invoiceId}/cancel`, {
+          method: "POST",
+          body: JSON.stringify({ reason: cancelReason }),
+        });
+
+        setInvoices((current) => current.filter((inv) => inv.id !== cancelTarget.invoiceId));
+        setCustomAlertMessage("Sukses\n\nInvoice telah dibatalkan.");
+        setCustomAlertVisible(true);
       }
-    });
-    setConfirmVisible(true);
+
+      // close modal
+      setCancelModalVisible(false);
+      setCancelTarget({ type: null });
+      setCancelReason("");
+    } catch (error) {
+      console.error(error);
+      setCustomAlertMessage("Error\n\nGagal membatalkan.");
+      setCustomAlertVisible(true);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   if (isLoading) {
@@ -842,6 +901,53 @@ const approveInvoice = (invoiceId: number) => {
         </Pressable>
       </Modal>
 
+      {/* CANCELLATION REASON MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={cancelModalVisible}
+        onRequestClose={() => setCancelModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.confirmBox, { maxWidth: 520 }]}>
+            <Text style={styles.confirmTitle}>Konfirmasi Pembatalan</Text>
+            <Text style={styles.confirmMessage}>Harap masukkan alasan pembatalan. Alasan ini akan langsung dikirimkan kepada pelanggan melalui push notification.</Text>
+
+            <Input
+              value={cancelReason}
+              onChangeText={(t) => setCancelReason(t)}
+              placeholder="Masukkan alasan pembatalan secara detail di sini..."
+              multiline
+              numberOfLines={4}
+              style={{ height: 120, marginBottom: 6 }}
+            />
+
+            {cancelError ? <Text style={styles.cancelErrorText}>{cancelError}</Text> : null}
+
+            <View style={[styles.confirmActions, { marginTop: 8 }]}> 
+              <TouchableOpacity
+                style={styles.confirmCancelBtn}
+                onPress={() => {
+                  setCancelModalVisible(false);
+                  setCancelTarget({ type: null });
+                  setCancelReason("");
+                  setCancelError(null);
+                }}
+              >
+                <Text style={styles.confirmCancelText}>Kembali</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.confirmActionBtn, { backgroundColor: theme.colors.destructive }]}
+                onPress={() => performCancel()}
+              >
+                <Text style={styles.confirmActionText}>Ya, Batalkan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* CUSTOM CONFIRMATION MODAL */}
       <Modal
         animationType="fade"
@@ -1085,6 +1191,13 @@ confirmBox: {
   confirmActionText: {
     fontWeight: "600",
     color: "#fff",
+  },
+
+  cancelErrorText: {
+    color: theme.colors.destructive,
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: "600",
   },
 
 

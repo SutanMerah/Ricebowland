@@ -128,7 +128,8 @@ const createMenuItem = async () => {
       setImageFileName(null);
     } catch (error: any) {
       console.error("Gagal membuat menu baru:", error);
-      setCreateError(error?.message || "Gagal membuat menu baru. Silakan coba lagi.");
+      const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
+      setCreateError(errorMessage || "Gagal membuat menu baru. Silakan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }

@@ -71,7 +71,8 @@ export default function ResetPassword() {
       setPasswordConfirmation("");
     } catch (err: any) {
       console.error("Reset Password Error:", err);
-      setError(err?.message || "Terjadi kesalahan saat mereset password.");
+      const errorMessage = err.body?.message || err.body?.error || err.message || "Terjadi kesalahan pada server";
+      setError(errorMessage || "Terjadi kesalahan saat mereset password.");
     } finally {
       setLoading(false);
     }

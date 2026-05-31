@@ -57,8 +57,9 @@ export default function MenuPage() {
       setMenuItems(parsedMenus);
     } catch (error: any) {
       console.error("Gagal memuat menu dari server:", error);
+      const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
       setMenuItems([]);
-      setLoadError(error?.message || "Gagal memuat menu. Silakan coba lagi.");
+      setLoadError(errorMessage || "Gagal memuat menu. Silakan coba lagi.");
     } finally {
       if (showSpinner) {
         setIsLoading(false);

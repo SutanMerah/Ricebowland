@@ -140,7 +140,8 @@ export default function Register() {
 
     console.error("Error Register:", error);
 
-    setCustomAlertMessage("Gagal Membuat Akun: " + error.message);
+    const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
+    setCustomAlertMessage("Gagal Membuat Akun: " + errorMessage);
     setCustomAlertVisible(true);
 
   }

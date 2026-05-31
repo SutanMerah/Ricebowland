@@ -208,8 +208,8 @@ export default function AdminContacts() {
       setShowModal(false);
       await loadContacts();
     } catch (error: any) {
-      const message = error?.message || "Gagal menyimpan kontak";
-      setFormError(message);
+      const errorMessage = error.body?.message || error.body?.error || error.message || "Terjadi kesalahan pada server";
+      setFormError(errorMessage || "Gagal menyimpan kontak");
     } finally {
       setIsSubmitting(false);
     }
