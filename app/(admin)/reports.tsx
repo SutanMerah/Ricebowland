@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
-import { spacing } from "@/components/system/spacing"; // Fix: Import path dituntaskan
-import { API_BASE_URL } from "@/lib/api";
+import { spacing } from "@/components/system/spacing";
+import { apiFetch } from "@/lib/fetch";
 
 interface RawOrderItem {
   id: number;
@@ -48,12 +48,7 @@ export default function AdminReports() {
     async function loadOrders() {
       try {
         setIsLoading(true);
-        const response = await fetch(`${API_BASE_URL}/orders`, {
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-        const data = await response.json();
+        const data = await apiFetch("/orders");
         const orderList = Array.isArray(data) ? data : data.data || [];
         setOrders(orderList);
       } catch (error) {

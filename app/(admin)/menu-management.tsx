@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 interface MenuItem {
   id: number | string;
@@ -40,8 +40,7 @@ export default function AdminMenuManagement() {
         if (showSpinner) {
           setIsLoading(true);
         }
-        const response = await fetch(`${API_BASE_URL}/menus`);
-        const data = await response.json();
+        const data = await apiFetch("/menus");
         setMenus(Array.isArray(data) ? data : data.data || []);
       } catch (error) {
         console.error("Gagal memuat menu:", error);
@@ -113,24 +112,12 @@ const createMenuItem = async () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/menus`, {
+      const result = await apiFetch("/menus", {
         method: "POST",
-        headers: { "Accept": "application/json" },
         body: formData,
       });
 
-      const result = await response.json().catch(() => null);
-      if (!response.ok) {
-        // Menampilkan pesan error spesifik dari backend (jika ada)
-        const message = result?.message || `Tidak dapat membuat menu baru (${response.status})`;
-        // Jika ada detail error dari Laravel, kita tampilkan agar lebih jelas
-        if (result?.errors) {
-            console.error("Detail Error Validasi:", result.errors);
-        }
-        throw new Error(message);
-      }
-
-      const createdMenu = result && result?.id
+      const createdMenu = result && (result as any).id
         ? result
         : { id: Date.now(), name: name.trim(), description: description.trim(), price: parsedPrice };
       setMenus((current) => [createdMenu, ...current]);
@@ -153,7 +140,7 @@ const createMenuItem = async () => {
 
   const confirmDeleteMenu = async (menuId: number | string) => {
     try {
-      await fetch(`${API_BASE_URL}/menus/${menuId}`, {
+      await apiFetch(`/menus/${menuId}`, {
         method: "DELETE",
       });
       setMenus((current) => current.filter((item) => item.id !== menuId));

@@ -8,8 +8,8 @@ import { Icon } from "@/components/ui/Icon";
 
 import { theme } from "@/constants/theme";
 import { spacing, radius } from "@/components/system";
-import { useAuth } from "@/components/system/AuthContext"; // 👈 1. Import Autentikasi
-import { API_BASE_URL } from "@/lib/api";
+import { useAuth } from "@/components/system/AuthContext";
+import { apiFetch } from "@/lib/fetch";
 
 export default function CustomerDashboardCombined() {
   const { user } = useAuth(); // 👈 2. Ambil data user yang sedang aktif login
@@ -44,12 +44,13 @@ export default function CustomerDashboardCombined() {
     const groups: Record<string, any> = {};
 
     rawOrders.forEach((item) => {
-      const groupKey = item.created_at || "unknown";
+      // 🚀 Group menggunakan order_code dari backend (bukan created_at)
+      const groupKey = item.order_code || `order-${item.id}`;
 
       if (!groups[groupKey]) {
         groups[groupKey] = {
-          displayId: `ORD-${new Date(groupKey).getFullYear()}-${String(item.user_id).padStart(2, '0')}${new Date(groupKey).getMonth() + 1}-${item.id}`,
-          created_at: groupKey,
+          order_code: item.order_code,  // 🚀 Gunakan order_code real dari database
+          created_at: item.created_at,
           status: item.status || "pending",
           items: [],
           totalPrice: 0
@@ -82,20 +83,11 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
       setLoading(true);
     }
     try {
-      const response = await fetch(`${API_BASE_URL}/orders`, {
+      const result = await apiFetch("/orders", {
         method: "GET",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        }
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        // Antisipasi jika data dibungkus dalam bentuk array langsung atau properti .data
-        const orderList = Array.isArray(result) ? result : (result.data || []);
+      const orderList = Array.isArray(result) ? result : (result.data || []);
         
-        // 🔒 PERBAIKAN LOGIKA: Paksa kedua ID menjadi tipe Number agar sinkron!
         const myOrders = orderList.filter((order: any) => Number(order.user_id) === Number(user.id));
         const filteredOrders = myOrders.filter((order: any) => {
           const status = String(order.status || "").toLowerCase();
@@ -111,9 +103,6 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
           setGroupedOrders([]);
           setHasOrder(false);
         }
-      } else {
-        console.error("Respons server tidak oke:", response.status);
-      }
     } catch (error) {
       console.error("Gagal mengambil data dari Laravel:", error);
     } finally {
@@ -125,10 +114,7 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
 
   const loadMenuMap = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/menus`);
-      if (!response.ok) return;
-
-      const data = await response.json();
+      const data = await apiFetch("/menus");
       const parsedMenus = Array.isArray(data)
         ? data
         : Array.isArray(data?.data)
@@ -231,15 +217,16 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
         </View>
       ) : (
         groupedOrders.map((order: any, index: number) => (
-          <Card key={order.created_at || index} style={{ marginBottom: 16 }}>
+          <Card key={order.order_code || index} style={{ marginBottom: 16 }}>
             <CardContent>
               {/* ORDER HEADER */}
               <View style={[styles.orderHeader, { borderBottomColor: theme.colors.border }]}>
                 <View style={{ flex: 1 }}>
                   <View style={styles.row}>
                     <Icon name="bag" size={18} color={theme.colors.primary} />
+                    {/* 🚀 Tampilkan order_code real dari database */}
                     <Text style={[styles.orderId, { color: theme.colors.foreground }]}>
-                      Order #{order.displayId}
+                      Order #{order.order_code || `#${order.id}`}
                     </Text>
                   </View>
                   <Text style={[styles.meta, { color: theme.colors.mutedForeground, marginTop: 4 }]}>

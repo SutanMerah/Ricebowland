@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { theme } from "@/constants/theme";
 import { spacing, typography } from "@/components/system";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 const defaultMenuItems = [
   {
@@ -48,10 +48,7 @@ export function MenuPreview() {
     async function loadPreviewMenus() {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/menus`);
-        if (!response.ok) return;
-
-        const data = await response.json();
+        const data = await apiFetch("/menus");
         const parsedMenus = Array.isArray(data)
           ? data
           : Array.isArray(data?.data)

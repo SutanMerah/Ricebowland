@@ -28,6 +28,13 @@ interface Contact {
   updated_at: string;
 }
 
+interface UserRole {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export default function AdminContacts() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
@@ -48,9 +55,22 @@ export default function AdminContacts() {
   const [customAlertMessage, setCustomAlertMessage] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
-  // Load contacts
+  const [users, setUsers] = useState<UserRole[]>([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(true);
+  const [openRoleDropdown, setOpenRoleDropdown] = useState<number | null>(null);
+  const [roleChangeTarget, setRoleChangeTarget] = useState<{
+    userId: number;
+    name: string;
+    email: string;
+    currentRole: string;
+    nextRole: string;
+  } | null>(null);
+  const [isRoleUpdating, setIsRoleUpdating] = useState(false);
+
+  // Load contacts and user roles
   useEffect(() => {
     loadContacts();
+    loadUsers();
   }, []);
 
   const loadContacts = async () => {
@@ -64,6 +84,64 @@ export default function AdminContacts() {
       setCustomAlertVisible(true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      setIsUsersLoading(true);
+      const data = await apiFetch("/admin/users");
+      setUsers(Array.isArray(data) ? data : data.data || []);
+    } catch (error) {
+      console.error("Gagal memuat pengguna:", error);
+      setCustomAlertMessage("Kesalahan\n\nGagal memuat daftar pengguna");
+      setCustomAlertVisible(true);
+    } finally {
+      setIsUsersLoading(false);
+    }
+  };
+
+  const toggleRoleDropdown = (id: number) => {
+    setOpenRoleDropdown((prev) => (prev === id ? null : id));
+  };
+
+  const requestRoleChange = (user: UserRole, newRole: string) => {
+    if (newRole === user.role) {
+      setOpenRoleDropdown(null);
+      return;
+    }
+
+    setRoleChangeTarget({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      currentRole: user.role,
+      nextRole: newRole,
+    });
+    setOpenRoleDropdown(null);
+  };
+
+  const confirmRoleChange = async () => {
+    if (!roleChangeTarget) return;
+
+    setIsRoleUpdating(true);
+    try {
+      await apiFetch(`/admin/users/${roleChangeTarget.userId}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: roleChangeTarget.nextRole }),
+      });
+
+      setCustomAlertMessage("Sukses\n\nRole pengguna berhasil diperbarui.");
+      setCustomAlertVisible(true);
+      await loadUsers();
+    } catch (error) {
+      console.error("Gagal memperbarui role pengguna:", error);
+      setCustomAlertMessage("Kesalahan\n\nGagal memperbarui role pengguna");
+      setCustomAlertVisible(true);
+    } finally {
+      setIsRoleUpdating(false);
+      setRoleChangeTarget(null);
     }
   };
 
@@ -186,8 +264,8 @@ export default function AdminContacts() {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingHorizontal: isDesktop ? spacing.xl : spacing.lg }]}>
-        <Text style={styles.title}>Kelola Kontak CS</Text>
-        <Text style={styles.subtitle}>Atur daftar nomor telepon customer service</Text>
+        <Text style={styles.title}>Kelola CS</Text>
+        <Text style={styles.subtitle}>Atur daftar customer service</Text>
       </View>
 
       {isLoading ? (
@@ -300,6 +378,116 @@ export default function AdminContacts() {
                 )}
               </View>
             )}
+
+            <View style={styles.userSection}>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionTitle}>Kelola Hak Akses Pengguna</Text>
+                <Text style={styles.sectionSubtitle}>Ubah role pengguna dengan konfirmasi sebelum perubahan diterapkan.</Text>
+              </View>
+
+              {isUsersLoading ? (
+                <View style={styles.emptyState}>
+                  <ActivityIndicator size="large" color={theme.colors.primary} />
+                  <Text style={styles.emptyDesc}>Memuat daftar pengguna...</Text>
+                </View>
+              ) : users.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Icon name="help-circle-outline" size={48} color={theme.colors.mutedForeground} />
+                  <Text style={styles.emptyTitle}>Tidak ada pengguna</Text>
+                  <Text style={styles.emptyDesc}>Daftar pengguna belum tersedia untuk saat ini.</Text>
+                </View>
+              ) : isDesktop ? (
+                <View style={styles.usersDesktopTable}>
+                  <View style={styles.usersTableHeader}>
+                    <Text style={[styles.usersTableCell, styles.tableHeaderText]}>Nama</Text>
+                    <Text style={[styles.usersTableCell, styles.tableHeaderText]}>Email</Text>
+                    <Text style={[styles.usersTableCell, styles.tableHeaderText]}>Role</Text>
+                    <Text style={[styles.usersTableCell, styles.tableHeaderText, { flex: 0.8 }]}>Aksi</Text>
+                  </View>
+                  {users.map((user, index) => (
+                    <View key={user.id} style={[
+                        styles.usersTableRow, 
+                        // 👇 Suntikkan zIndex dan elevation yang semakin mengecil ke bawah
+                        { zIndex: users.length - index, elevation: users.length - index }
+                      ]}>
+                      <Text style={styles.usersTableCell}>{user.name}</Text>
+                      <Text style={styles.usersTableCell}>{user.email}</Text>
+                      <View style={styles.usersTableCell}>
+                        <View style={styles.userRoleBadge}>
+                          <Text style={styles.userRoleText}>{user.role === "admin" ? "Admin" : "Customer"}</Text>
+                        </View>
+                      </View>
+                      <View style={[styles.usersTableCell, { flex: 0.8 }]}> 
+                        <View style={styles.roleDropdownWrapper}>
+                          <Pressable style={styles.roleDropdownButton} onPress={() => toggleRoleDropdown(user.id)}>
+                            <Text style={styles.roleDropdownLabel}>{user.role === "admin" ? "Admin" : "Customer"}</Text>
+                            <Icon name={openRoleDropdown === user.id ? "chevron-up" : "chevron-down"} size={18} color={theme.colors.mutedForeground} />
+                          </Pressable>
+                          {openRoleDropdown === user.id && (
+                            <View style={styles.roleDropdownList}>
+                              {[
+                                { label: "Customer", value: "customer" },
+                                { label: "Admin", value: "admin" },
+                              ].map((option) => (
+                                <Pressable
+                                  key={option.value}
+                                  style={styles.roleDropdownItem}
+                                  onPress={() => requestRoleChange(user, option.value)}
+                                >
+                                  <Text style={styles.roleDropdownItemText}>{option.label}</Text>
+                                </Pressable>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.userCardList}>
+                  {users.map((user, index) => (
+                    <Card key={user.id} style={[
+                        styles.userCard, 
+                        // 👇 Berlakukan trik yang sama untuk Card mobile
+                        { zIndex: users.length - index, elevation: users.length - index }
+                      ]}>
+                      <CardContent>
+                        <Text style={styles.userCardName}>{user.name}</Text>
+                        <Text style={styles.userCardEmail}>{user.email}</Text>
+                        <View style={styles.userCardFooter}>
+                          <View style={styles.userRoleBadge}>
+                            <Text style={styles.userRoleText}>{user.role === "admin" ? "Admin" : "Customer"}</Text>
+                          </View>
+                          <View style={styles.roleDropdownWrapperMobile}>
+                            <Pressable style={styles.roleDropdownButton} onPress={() => toggleRoleDropdown(user.id)}>
+                              <Text style={styles.roleDropdownLabel}>{user.role === "admin" ? "Admin" : "Customer"}</Text>
+                              <Icon name={openRoleDropdown === user.id ? "chevron-up" : "chevron-down"} size={18} color={theme.colors.mutedForeground} />
+                            </Pressable>
+                            {openRoleDropdown === user.id && (
+                              <View style={styles.roleDropdownListMobile}>
+                                {[
+                                  { label: "Customer", value: "customer" },
+                                  { label: "Admin", value: "admin" },
+                                ].map((option) => (
+                                  <Pressable
+                                    key={option.value}
+                                    style={styles.roleDropdownItem}
+                                    onPress={() => requestRoleChange(user, option.value)}
+                                  >
+                                    <Text style={styles.roleDropdownItemText}>{option.label}</Text>
+                                  </Pressable>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
         </ScrollView>
       )}
@@ -389,6 +577,34 @@ export default function AdminContacts() {
                   }
                 }}
                 style={{ backgroundColor: theme.colors.destructive }}
+              />
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={roleChangeTarget !== null} animationType="fade" transparent>
+        <Pressable
+          style={styles.confirmOverlay}
+          onPress={() => setRoleChangeTarget(null)}
+        >
+          <View style={styles.confirmBox}>
+            <Text style={styles.confirmTitle}>Ubah Role Pengguna?</Text>
+            <Text style={styles.confirmMessage}>
+              {roleChangeTarget
+                ? `Apakah Anda yakin ingin mengubah role ${roleChangeTarget.name} menjadi ${roleChangeTarget.nextRole === "admin" ? "admin" : "customer"}?`
+                : "Apakah Anda yakin ingin mengubah role pengguna ini?"}
+            </Text>
+            <View style={styles.confirmActions}>
+              <Button
+                title="Batal"
+                variant="outline"
+                onPress={() => setRoleChangeTarget(null)}
+              />
+              <Button
+                title={isRoleUpdating ? "..." : "Konfirmasi"}
+                onPress={confirmRoleChange}
+                disabled={isRoleUpdating}
               />
             </View>
           </View>
@@ -574,6 +790,159 @@ const styles = StyleSheet.create({
     color: theme.colors.mutedForeground,
   },
 
+  // ===== USER ROLE MANAGEMENT =====
+  userSection: {
+    marginTop: spacing.xxxl,
+    gap: spacing.lg,
+  },
+  sectionHeading: {
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    ...typography.h3,
+    color: theme.colors.foreground,
+  },
+  sectionSubtitle: {
+    ...typography.body,
+    color: theme.colors.mutedForeground,
+  },
+  usersDesktopTable: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+    backgroundColor: theme.colors.card,
+  },
+  usersTableHeader: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.background,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  usersTableRow: {
+    flexDirection: "row",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderTopWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: "center",
+  },
+  usersTableCell: {
+    flex: 1,
+    color: theme.colors.foreground,
+    fontSize: 14,
+  },
+  tableHeaderText: {
+    fontWeight: "700",
+    color: theme.colors.mutedForeground,
+  },
+  userRoleBadge: {
+    alignSelf: "flex-start",
+    borderRadius: radius.md,
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  userRoleText: {
+    ...typography.small,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  userCardList: {
+    gap: spacing.lg,
+  },
+  userCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: spacing.lg,
+  },
+  userCardName: {
+    ...typography.body,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+    marginBottom: spacing.xs,
+  },
+  userCardEmail: {
+    ...typography.body,
+    color: theme.colors.mutedForeground,
+    marginBottom: spacing.md,
+  },
+  userCardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  roleDropdownWrapper: {
+    position: "relative",
+    minWidth: 170,
+  },
+  roleDropdownWrapperMobile: {
+    position: "relative",
+    width: "100%",
+  },
+  roleDropdownButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: theme.colors.inputBackground,
+  },
+  roleDropdownLabel: {
+    ...typography.body,
+    color: theme.colors.foreground,
+  },
+  roleDropdownList: {
+    position: "absolute",
+    top: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: radius.lg,
+    marginTop: spacing.xs,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  roleDropdownListMobile: {
+    position: "absolute",
+    top: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: radius.lg,
+    marginTop: spacing.xs,
+    overflow: "hidden",
+  },
+  roleDropdownItem: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  roleDropdownItemText: {
+    ...typography.body,
+    color: theme.colors.foreground,
+  },
+
   // ===== CONTACT CARD =====
   contactCard: {
     backgroundColor: theme.colors.card,
@@ -685,7 +1054,7 @@ const styles = StyleSheet.create({
   // ===== DELETE CONFIRMATION MODAL =====
   confirmOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
     justifyContent: "center",
     alignItems: "center",
   },

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Plus, Minus, ShoppingCart, Trash2 } from "lucide-react-native";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -51,12 +51,7 @@ export default function MenuPage() {
       }
       setLoadError(null);
 
-      const response = await fetch(`${API_BASE_URL}/menus`);
-      if (!response.ok) {
-        throw new Error(`Gagal memuat menu: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await apiFetch("/menus");
       const parsedMenus = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
 
       setMenuItems(parsedMenus);

@@ -3,13 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "r
 import { router } from "expo-router";
 import { useAuth } from "@/components/system/AuthContext";
 
+interface CustomerNavbarProps {
+  unreadCount?: number;
+}
+
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 
 import { theme } from "@/constants/theme";
 import { spacing, radius } from "@/components/system";
 
-export default function CustomerNavbar() {
+export default function CustomerNavbar({ unreadCount = 0 }: CustomerNavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { width } = useWindowDimensions();
 
@@ -70,6 +74,15 @@ const handleLogout = async () => {
               <Text style={styles.link}>Hubungi CS</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity onPress={() => router.push("/(customer)/NotificationScreen")} style={styles.notificationButton}>
+              <Icon name="notifications-outline" size={22} color={theme.colors.foreground} />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
             <Button
               title="Logout"
               variant="outline"
@@ -78,13 +91,24 @@ const handleLogout = async () => {
             />
           </View>
         ) : (
-          /* MOBILE TOGGLE - Muncul hanya jika layar kecil */
-          <TouchableOpacity
-            onPress={() => setIsMenuOpen(!isMenuOpen)}
-            style={styles.menuBtn}
-          >
-            <Icon name={isMenuOpen ? "close" : "menu"} size={24} color={theme.colors.foreground} />
-          </TouchableOpacity>
+          <View style={styles.mobileActions}>
+            <TouchableOpacity onPress={() => router.push("/(customer)/NotificationScreen")} style={styles.notificationButton}>
+              <Icon name="notifications-outline" size={22} color={theme.colors.foreground} />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* MOBILE TOGGLE - Muncul hanya jika layar kecil */}
+            <TouchableOpacity
+              onPress={() => setIsMenuOpen(!isMenuOpen)}
+              style={styles.menuBtn}
+            >
+              <Icon name={isMenuOpen ? "close" : "menu"} size={24} color={theme.colors.foreground} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -172,6 +196,28 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md, // Memberi jarak tambahan dari menu lain
     minWidth: 100,
   },
+  notificationButton: {
+    padding: spacing.sm,
+    borderRadius: 999,
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#ef4444",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
   mobileMenu: {
     padding: spacing.lg,
     backgroundColor: theme.colors.background,
@@ -188,5 +234,10 @@ const styles = StyleSheet.create({
   fullBtn: {
     width: "100%",
     marginTop: spacing.sm,
+  },
+  mobileActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
 });

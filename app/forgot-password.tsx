@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/Card";
 import { theme } from "@/constants/theme";
 import { spacing, radius, typography } from "@/components/system";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 export default function ForgotPassword() {
   const { width } = useWindowDimensions();
@@ -46,21 +46,10 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+      const result = await apiFetch("/forgot-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
         body: JSON.stringify({ email: email.trim() }),
       });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const message = result?.message || "Gagal mengirim link reset password.";
-        throw new Error(message);
-      }
 
       setMessage(result?.message || "Link reset password telah dikirim ke email Anda.");
     } catch (err: any) {

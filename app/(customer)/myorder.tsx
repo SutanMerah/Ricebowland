@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/components/system/AuthContext";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 import { spacing } from "@/components/system";
 
 
@@ -20,12 +20,13 @@ export default function MyOrders() {
     const groups: Record<string, any> = {};
 
     rawOrders.forEach((order) => {
-      const groupKey = order.created_at || `order-${order.id}`;
+      // 🚀 Group menggunakan order_code dari backend (bukan created_at)
+      const groupKey = order.order_code || `order-${order.id}`;
       if (!groups[groupKey]) {
         groups[groupKey] = {
+          order_code: order.order_code,  // 🚀 Gunakan order_code real dari database
           created_at: order.created_at,
           status: order.status || "completed",
-          displayId: `ORD-${new Date(order.created_at).getFullYear()}-${String(order.user_id).padStart(2, "0")}${new Date(order.created_at).getMonth() + 1}-${order.id}`,
           items: [],
           totalPrice: 0,
         };
@@ -57,19 +58,9 @@ export default function MyOrders() {
       setLoading(true);
     }
     try {
-      const response = await fetch(`${API_BASE_URL}/orders`, {
+      const result = await apiFetch("/orders", {
         method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
       const orderList = Array.isArray(result) ? result : result.data || [];
       const completedOrders = orderList.filter((order: any) => {
         return Number(order.user_id) === Number(user.id) && String(order.status || "").toLowerCase() === "completed";
@@ -127,10 +118,11 @@ export default function MyOrders() {
         </View>
       ) : (
         orders.map((order, index) => (
-          <Card key={`${order.displayId}-${index}`} style={styles.orderCard}>
+          <Card key={`${order.order_code}-${index}`} style={styles.orderCard}>
             <CardContent>
               <View style={styles.orderHeader}>
-                <Text style={[styles.orderId, { color: theme.colors.foreground }]}>{order.displayId}</Text>
+                {/* 🚀 Tampilkan order_code real dari database */}
+                <Text style={[styles.orderId, { color: theme.colors.foreground }]}>{order.order_code || `Order #${order.id}`}</Text>
                 <View style={styles.statusBadge}>
                   <Text style={styles.statusText}>{order.status}</Text>
                 </View>
@@ -140,7 +132,7 @@ export default function MyOrders() {
 
               <View style={styles.itemsContainer}>
                 {order.items.map((item: any, idx: number) => (
-                  <View key={`${order.displayId}-item-${idx}`} style={styles.itemRow}>
+                  <View key={`${order.order_code}-item-${idx}`} style={styles.itemRow}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.itemName, { color: theme.colors.foreground }]}>{item.name}</Text>
                       <Text style={[styles.itemMeta, { color: theme.colors.mutedForeground }]}>Rp {item.price.toLocaleString("id-ID")} × {item.qty}</Text>

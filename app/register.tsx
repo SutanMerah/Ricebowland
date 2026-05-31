@@ -29,7 +29,7 @@ import {
 import { theme } from "@/constants/theme";
 import { spacing, radius, typography } from "@/components/system";
 import { useAuth } from "@/components/system/AuthContext";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 export default function Register() {
   const { login } = useAuth();
@@ -77,17 +77,9 @@ export default function Register() {
 
     // 2. Tembak data ke API Register Laravel kelompokmu
 
-    const response = await fetch(`${API_BASE_URL}/register`, {
+    const result = await apiFetch("/register", {
 
       method: "POST",
-
-      headers: {
-
-        "Content-Type": "application/json",
-
-        "Accept": "application/json",
-
-      },
 
       body: JSON.stringify({
 
@@ -103,15 +95,11 @@ export default function Register() {
 
 
 
-    const result = await response.json();
-
-
-
-    if (!response.ok) {
+    if (!result) {
 
       // Tangkap jika email sudah terdaftar atau validasi Laravel gagal
 
-      throw new Error(result.message || "Gagal melakukan registrasi ke server.");
+      throw new Error("Gagal melakukan registrasi ke server.");
 
     }
 

@@ -2,6 +2,7 @@ import { Slot, useRouter, useRootNavigationState } from "expo-router";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { useEffect } from "react";
 import { useAuth } from "@/components/system/AuthContext"; // 👈 Gunakan AuthContext
+import { useNotifications } from "@/components/system/useNotifications";
 import CustomerNavbar from "@/components/layout/CustomerNavbar";
 import { theme } from "@/constants/theme";
 
@@ -20,6 +21,8 @@ export default function CustomerLayout() {
     }
   }, [role, loading, rootNavigationState?.key]);
 
+  const { unreadCount } = useNotifications();
+
   // Tampilkan indikator pemuatan data selama browser melakukan refresh halaman
   if (loading) {
     return (
@@ -34,7 +37,7 @@ export default function CustomerLayout() {
 
   return (
     <View style={styles.container}>
-      <CustomerNavbar />
+      <CustomerNavbar unreadCount={unreadCount} />
       <Slot />
     </View>
   );

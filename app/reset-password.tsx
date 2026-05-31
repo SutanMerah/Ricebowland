@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/Card";
 import { theme } from "@/constants/theme";
 import { spacing, radius, typography } from "@/components/system";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 export default function ResetPassword() {
   const { width } = useWindowDimensions();
@@ -54,12 +54,8 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/reset-password`, {
+      const result = await apiFetch("/reset-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
         body: JSON.stringify({
           email: email.trim(),
           token: token.trim(),
@@ -67,13 +63,6 @@ export default function ResetPassword() {
           password_confirmation: passwordConfirmation,
         }),
       });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const message = result?.message || "Token tidak valid atau telah kedaluwarsa.";
-        throw new Error(message);
-      }
 
       setMessage(result?.message || "Password berhasil direset.");
       setEmail("");

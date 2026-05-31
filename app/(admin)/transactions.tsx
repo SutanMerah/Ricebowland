@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Select } from "@/components/ui/Select";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system/spacing";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 const orderStatusOptions = [
   { label: "Tertunda", value: "pending" },
@@ -27,6 +27,7 @@ interface RawOrder {
   status: string;
   notes: string | null;
   created_at: string;
+  order_code?: string; // ✅ real order code from backend
   user?: {
     id: number;
     name: string;
@@ -73,6 +74,7 @@ interface GroupedOrder {
   status: string;
   created_at: string;
   account_name: string;
+  order_code?: string;  // 🚀 Tambahkan field order_code
   raw_ids: number[];
   items: {
     menu_id: number;
@@ -96,17 +98,10 @@ function formatDate(dateString: string) {
 }
 
 // Helper Generator Kode Unik: ORD-[Tahun]-[UserID][Bulan]-[ID]
-function generateOrderCode(orderId: number, userId: number, dateString: string) {
-  try {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const monthFormatted = String(date.getMonth() + 1).padStart(2, '0');
-    const midToken = `${String(userId).padStart(2, '0')}${monthFormatted.slice(-1)}`;
-    
-    return `ORD-${year}-${midToken}-${orderId}`;
-  } catch {
-    return `ORD-2026-015-${orderId}`; 
-  }
+// 🚀 Fungsi helper untuk menampilkan order code real dari database
+function getDisplayOrderCode(orderCode: string | null | undefined, fallbackId?: number) {
+  if (orderCode) return orderCode;
+  return `Order #${fallbackId || 'N/A'}`;
 }
 
 function getStatusStyle(status: string) {
@@ -159,13 +154,9 @@ export default function AdminTransactions() {
       }
       setApiError(null);
       
-      const response = await fetch(`${API_BASE_URL}/orders`, {
+      const data = await apiFetch("/orders", {
         mode: 'cors',
-        headers: {
-          "Accept": "application/json"
-        }
       });
-      const data = await response.json();
       const orderList = Array.isArray(data) ? data : data.data || [];
       
       setRawOrders(orderList);
@@ -181,14 +172,23 @@ export default function AdminTransactions() {
 
   async function loadInvoices() {
     try {
-      const response = await fetch(`${API_BASE_URL}/invoices/pending`, {
+      const data = await apiFetch("/invoices/pending", {
         mode: 'cors',
-        headers: {
-          "Accept": "application/json"
-        }
       });
-      const data = await response.json();
-      const invoiceList = Array.isArray(data) ? data : data.data || [];
+
+      // 🔴 TAMBAHKAN LOG INI SEKARANG
+      console.log("🟢 [RAW BACKEND DATA]:", JSON.stringify(data, null, 2));
+
+      const invoiceList = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.invoices)
+      ? data.invoices
+      : Array.isArray(data?.data?.invoices)
+      ? data.data.invoices
+      : [];
+
       setInvoices(invoiceList);
     } catch (error) {
       console.error("[DEBUG ERROR] Gagal memuat data invoice:", error);
@@ -220,8 +220,8 @@ export default function AdminTransactions() {
     const groups: Record<string, GroupedOrder> = {};
 
     rawOrders.forEach((item) => {
-      const rawDate = item.created_at ? item.created_at.split(' ')[0] : "unknown";
-      const groupKey = `${rawDate}_US${item.user_id}`;
+      // 🚀 Group menggunakan order_code dari backend (bukan date+userId)
+      const groupKey = item.order_code || `order-${item.id}`;
 
       if (!groups[groupKey]) {
         groups[groupKey] = {
@@ -234,6 +234,7 @@ export default function AdminTransactions() {
           status: item.status || "pending",
           created_at: item.created_at,
           account_name: item.user?.name || `User ID: ${item.user_id}`,
+          order_code: item.order_code,  // 🚀 Simpan order_code real
           raw_ids: [],
           items: []
         };
@@ -294,17 +295,10 @@ export default function AdminTransactions() {
 
     try {
       for (const rawId of orderGroup.raw_ids) {
-        const response = await fetch(`${API_BASE_URL}/orders/${rawId}`, {
+        await apiFetch(`/orders/${rawId}`, {
           method: 'PATCH',
-          mode: 'cors',
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({ status: target }),
         });
-
-        if (!response.ok) throw new Error("Gagal memperbarui status pesanan.");
       }
 
       setRawOrders((current) =>
@@ -338,16 +332,9 @@ const approveInvoice = (invoiceId: number) => {
       onConfirm: async () => {
         setIsUpdating(true);
         try {
-          const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/approve`, {
+          await apiFetch(`/invoices/${invoiceId}/approve`, {
             method: 'POST',
-            mode: 'cors',
-            headers: {
-              "Accept": "application/json",
-              "Content-Type": "application/json",
-            },
           });
-
-          if (!response.ok) throw new Error("Gagal menyetujui invoice.");
 
           setInvoices((current) => current.filter((inv) => inv.id !== invoiceId));
           setCustomAlertMessage("Sukses\n\nInvoice telah disetujui.");
@@ -374,16 +361,9 @@ const approveInvoice = (invoiceId: number) => {
       onConfirm: async () => {
         setIsUpdating(true);
         try {
-          const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/cancel`, {
+          await apiFetch(`/invoices/${invoiceId}/cancel`, {
             method: 'POST',
-            mode: 'cors',
-            headers: {
-              "Accept": "application/json",
-              "Content-Type": "application/json",
-            },
           });
-
-          if (!response.ok) throw new Error("Gagal membatalkan invoice.");
 
           setInvoices((current) => current.filter((inv) => inv.id !== invoiceId));
           setCustomAlertMessage("Sukses\n\nInvoice telah dibatalkan.");
@@ -487,7 +467,7 @@ const approveInvoice = (invoiceId: number) => {
             </Card>
             <Card style={styles.summaryCard}>
               <CardContent>
-                <Text style={styles.summaryLabel}>Transaksi Terverifikasi</Text>
+                <Text style={styles.summaryLabel}>Selesai</Text>
                 <Text style={styles.summaryValue}>{ordersSummary.completed}</Text>
               </CardContent>
             </Card>
@@ -516,8 +496,9 @@ const approveInvoice = (invoiceId: number) => {
                         
                         <View style={styles.orderHeaderRow}>
                           <View>
+                            {/* 🚀 Tampilkan order_code real dari database */}
                             <Text style={styles.orderTitle}>
-                              Order #{generateOrderCode(order.id, order.user_id, order.created_at)}
+                              Order #{getDisplayOrderCode(order.order_code, order.id)}
                             </Text>
                             <Text style={styles.orderMeta}>{formatDate(order.created_at)}</Text>
                           </View>
@@ -617,7 +598,7 @@ const approveInvoice = (invoiceId: number) => {
               <Card style={styles.recentCard}>
                 <CardContent style={{ padding: 20 }}>
                   <View style={styles.recentHeader}>
-                    <Text style={styles.sectionTitle}>Transaksi Terverifikasi</Text>
+                    <Text style={styles.sectionTitle}>Daftar Orderan</Text>
                     <Text style={styles.recentMeta}>{groupedOrders.length} total</Text>
                   </View>
 
@@ -630,8 +611,9 @@ const approveInvoice = (invoiceId: number) => {
                       return (
                         <View key={item.id.toString()} style={styles.transactionRow}>
                           <View style={styles.transactionText}> 
+                            {/* 🚀 Tampilkan order_code real dari database */}
                             <Text style={styles.transactionId}>
-                              {generateOrderCode(item.id, item.user_id, item.created_at)}
+                              {getDisplayOrderCode(item.order_code, item.id)}
                             </Text>
                             <Text style={styles.transactionDate}>{formatDate(item.created_at)}</Text>
                           </View>

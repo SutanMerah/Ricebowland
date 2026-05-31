@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 // Interface disesuaikan dengan skema flat database Laravel kamu
 interface Order {
@@ -21,6 +21,7 @@ interface Order {
   status: string;
   created_at: string;
   updated_at: string;
+  order_code?: string; // ✅ real order code from backend
 }
 
 interface Menu {
@@ -48,7 +49,7 @@ interface Invoice {
 
 // Interface hasil grouping transaksional
 interface GroupedTransaction {
-  displayId: string;
+  order_code: string;  // 🚀 Ubah dari displayId ke order_code real dari database
   created_at: string;
   status: string;
   itemsString: string;
@@ -72,17 +73,12 @@ export default function AdminDashboard() {
         setIsLoading(true);
       }
 
-      const [ordersRes, menusRes, invoicesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/orders`),
-        fetch(`${API_BASE_URL}/menus`),
-        fetch(`${API_BASE_URL}/invoices/pending`)
+      const [ordersData, menusData, invoicesData] = await Promise.all([
+        apiFetch("/orders"),
+        apiFetch("/menus"),
+        apiFetch("/invoices/pending")
       ]);
 
-      const ordersData = await ordersRes.json();
-      const menusData = await menusRes.json();
-      const invoicesData = await invoicesRes.json();
-
-      // Ambil array langsung atau fallback data jika terbungkus objek
       const orderList = Array.isArray(ordersData) ? ordersData : (ordersData.data || []);
       const menuList = Array.isArray(menusData) ? menusData : (menusData.data || []);
       const invoiceList = Array.isArray(invoicesData) ? invoicesData : (invoicesData.data || []);
@@ -131,18 +127,12 @@ export default function AdminDashboard() {
     const groups: Record<string, any> = {};
 
     orders.forEach((item) => {
-      // Kelompokkan berdasarkan tanggal murni (Y-m-d) + user_id agar keranjang belanja menyatu
-      const rawDate = item.created_at ? item.created_at.split(' ')[0] : "unknown";
-      const groupKey = `${rawDate}_US${item.user_id}`;
+      // 🚀 Group menggunakan order_code dari backend (bukan date+userId)
+      const groupKey = item.order_code || `order-${item.id}`;
 
       if (!groups[groupKey]) {
-        const year = item.created_at ? new Date(item.created_at).getFullYear() : 2026;
-        const userCode = String(item.user_id || 0).padStart(2, '0');
-        const month = item.created_at ? (new Date(item.created_at).getMonth() + 1) : 5;
-
         groups[groupKey] = {
-          // Display ID dinamis yang rapi menyesuaikan dashboard customer
-          displayId: `ORD-${year}-${userCode}${month}-${item.id}`,
+          order_code: item.order_code,  // 🚀 Gunakan order_code real dari database
           created_at: item.created_at,
           status: item.status || "pending",
           subItems: [],
@@ -185,7 +175,7 @@ export default function AdminDashboard() {
       } catch {}
 
       return {
-        displayId: group.displayId,
+        order_code: group.order_code,  // 🚀 Gunakan order_code real
         created_at: group.created_at,
         status: group.status,
         itemsString: itemsString,
@@ -377,9 +367,10 @@ export default function AdminDashboard() {
                     // Desktop: tampilkan sebagai baris tabel
                     if (isDesktop) {
                       return (
-                        <View key={item.displayId} style={[styles.tableDataRow, { borderBottomColor: idx === 4 || idx === groupedTransactions.length - 1 ? 'transparent' : '#f1f3f4' }]}>
+                          <View key={item.order_code} style={[styles.tableDataRow, { borderBottomColor: idx === 4 || idx === groupedTransactions.length - 1 ? 'transparent' : '#f1f3f4' }]}>
+                            {/* 🚀 Tampilkan order_code real dari database */}
                           <Text style={[styles.tdOrderId, { flex: 2.2, color: theme.colors.foreground }]}>
-                            {item.displayId}
+                              {item.order_code || `Order #${idx}`}
                           </Text>
                           <Text style={[styles.tdItemsText, { flex: 3.3, color: theme.colors.mutedForeground }]} numberOfLines={1}>
                             {item.itemsString}
@@ -401,9 +392,10 @@ export default function AdminDashboard() {
 
                     // Mobile: tampilkan sebagai kartu ringkas agar badge tidak overlap
                     return (
-                      <View key={item.displayId} style={[styles.transactionCardMobile, { borderBottomColor: idx === 4 || idx === groupedTransactions.length - 1 ? 'transparent' : '#f1f3f4' }]}>
+                        <View key={item.order_code} style={[styles.transactionCardMobile, { borderBottomColor: idx === 4 || idx === groupedTransactions.length - 1 ? 'transparent' : '#f1f3f4' }]}>
                         <View style={styles.transactionCardTop}>
-                          <Text style={styles.transactionIdMobile} numberOfLines={1}>{item.displayId}</Text>
+                            {/* 🚀 Tampilkan order_code real dari database */}
+                            <Text style={styles.transactionIdMobile} numberOfLines={1}>{item.order_code || `Order #${idx}`}</Text>
                           <View style={[styles.transactionBadgeMobile, { backgroundColor: statusStyle.bg }]}>
                             <Text style={[styles.transactionBadgeTextMobile, { color: statusStyle.text }]}>{item.status}</Text>
                           </View>

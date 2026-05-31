@@ -6,6 +6,10 @@ import { Icon } from "@/components/ui/Icon";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/components/system/AuthContext";
 
+interface AdminNavbarProps {
+  unreadCount?: number;
+}
+
 const navItems = [
   { name: "Dashboard", path: "/(admin)/dashboard" },
   { name: "Transaksi", path: "/(admin)/transactions" },
@@ -14,7 +18,7 @@ const navItems = [
   { name: "Kelola CS", path: "/(admin)/contacts" },
 ];
 
-export default function AdminNavbar() {
+export default function AdminNavbar({ unreadCount = 0 }: AdminNavbarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
   const { width } = useWindowDimensions();
@@ -92,11 +96,16 @@ export default function AdminNavbar() {
 
         {/* SISI KANAN: PROFILE & LOGOUT */}
         <View style={styles.rightSection}>
-          {/* PROFILE BUTTON */}
-          <View style={[styles.profileBadge, { backgroundColor: "#fef3eb" }]}>
-            <Icon name="person" size={16} color="#202124" style={styles.profileIcon} />
-            {isDesktop && <Text style={styles.profileText}>Admin</Text>}
-          </View>
+
+          {/* NOTIFICATION BELL */}
+          <Pressable onPress={() => router.push("/(admin)/NotificationScreen")} style={styles.notificationButton}>
+            <Icon name="notifications-outline" size={22} color={theme.colors.foreground} />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+              </View>
+            )}
+          </Pressable>
 
           {/* LOGOUT BUTTON */}
           <Pressable onPress={handleLogout} style={styles.logoutButton}>
@@ -224,6 +233,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     color: "#70757a",
+  },
+  notificationButton: {
+    padding: 8,
+    borderRadius: 999,
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#ef4444",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
   },
   mobileDropdown: {
     width: '100%',

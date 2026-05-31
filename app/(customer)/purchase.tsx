@@ -24,7 +24,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 interface CartItem {
   id: number;
@@ -128,14 +128,10 @@ export default function PurchasingPage() {
           cart_items: cartItems, 
         };
 
-        const res = await fetch(`${API_BASE_URL}/invoices/stage`, {
+        const result = await apiFetch("/invoices/stage", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
-        if (!res.ok) throw new Error("Gagal menginisiasi pembayaran transfer.");
-        const result = await res.json();
         
         setCurrentInvoice(result.data);
         setStep("qris"); 
@@ -148,6 +144,9 @@ export default function PurchasingPage() {
 
     // --- ALUR COD ---
     try {
+      // 🚀 Generate batch order code untuk semua item dalam satu pesanan
+      const batchOrderCode = "ORD-" + Math.floor(100000 + Math.random() * 900000);
+
       const orderPromises = cartItems.map(async (item) => {
         const payload = {
           user_id: Number(sendingUserId),
@@ -156,19 +155,15 @@ export default function PurchasingPage() {
           customer_name: customerName,
           phone_number: phoneNumber,
           notes: notes,
+          order_code: batchOrderCode,  // 🚀 Tambahkan order_code ke payload
         };
 
-        const response = await fetch(`${API_BASE_URL}/orders`, {
+        const response = await apiFetch("/orders", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-          },
           body: JSON.stringify(payload),
         });
 
-        if (!response.ok) throw new Error(`Gagal memesan item: ${item.name}`);
-        return response.json();
+        return response;
       });
 
       await Promise.all(orderPromises);
@@ -184,7 +179,7 @@ export default function PurchasingPage() {
   const handleCancelInvoice = async () => {
     if (!currentInvoice) return;
     try {
-      await fetch(`${API_BASE_URL}/invoices/${currentInvoice.id}/cancel`, { method: "POST" });
+      await apiFetch(`/invoices/${currentInvoice.id}/cancel`, { method: "POST" });
       setStep("form");
       setCurrentInvoice(null);
       setPaymentProof(null); 
@@ -223,16 +218,10 @@ export default function PurchasingPage() {
         } as any);
       }
 
-      const res = await fetch(`${API_BASE_URL}/invoices/${currentInvoice?.id}/upload-proof`, {
+      await apiFetch(`/invoices/${currentInvoice?.id}/upload-proof`, {
         method: "POST",
-        headers: { "Accept": "application/json" },
         body: formData,
       });
-
-      if (!res.ok) {
-          const errorData = await res.json().catch(() => null);
-          throw new Error(errorData?.message || "Gagal mengunggah bukti pembayaran");
-      }
       
       setStep("waiting");
     } catch (error: any) {

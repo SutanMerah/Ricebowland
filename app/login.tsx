@@ -28,7 +28,7 @@ import {
 import { theme } from "@/constants/theme";
 import { spacing, radius, typography } from "@/components/system";
 import { useAuth } from "@/components/system/AuthContext";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/fetch";
 
 export default function Login() {
   const { login } = useAuth();
@@ -49,23 +49,15 @@ const handleSubmit = async () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const result = await apiFetch("/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
         body: JSON.stringify({
           email: email,
           password: password,
         }),
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Email atau password salah.");
-      }
+ 
+      console.log("🎁 [RAW RESPONSE LARAVEL]:", JSON.stringify(result, null, 2));
 
       const responseUser =
         (result && typeof result === "object" && "id" in result && "name" in result)
