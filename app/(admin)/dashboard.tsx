@@ -188,17 +188,21 @@ export default function AdminDashboard() {
   };
 
   const groupedTransactions = getGroupedTransactions();
+  const visibleTransactions = groupedTransactions.filter((transaction) => {
+    const status = String(transaction.status || "").toLowerCase();
+    return status !== "cancelled" && status !== "completed" && status !== "success" && status !== "ready";
+  });
 
   // 1. Kalkulasi Total Sales hari ini dari transaksi kelompok yang sukses
   const totalSalesToday = groupedTransactions
     .filter(t => t.status.toLowerCase() === "completed" || t.status.toLowerCase() === "success" || t.status.toLowerCase() === "ready")
     .reduce((sum, t) => sum + t.totalPrice, 0);
 
-  // 2. Jumlah total nota transaksi unik
-  const totalTransactions = groupedTransactions.length;
+  // 2. Jumlah total nota transaksi unik yang masih aktif
+  const totalTransactions = visibleTransactions.length;
 
   // 3. Jumlah nota transaksi yang masih pending/belum diverifikasi admin
-  const pendingOrdersCount = groupedTransactions.filter(
+  const pendingOrdersCount = visibleTransactions.filter(
     t => t.status.toLowerCase() === "pending" || t.status.toLowerCase() === "processing"
   ).length;
 
@@ -359,15 +363,15 @@ export default function AdminDashboard() {
                 </View>
 
                 {/* TABLE BODY ROWS */}
-                {groupedTransactions.length === 0 ? (
+                {visibleTransactions.length === 0 ? (
                   <Text style={{ textAlign: 'center', paddingVertical: 24, color: theme.colors.mutedForeground }}>Tidak ada transaksi tercatat hari ini</Text>
                 ) : (
-                  groupedTransactions.slice(0, 5).map((item, idx) => {
+                  visibleTransactions.slice(0, 5).map((item, idx) => {
                     const statusStyle = getStatusStyle(item.status);
                     // Desktop: tampilkan sebagai baris tabel
                     if (isDesktop) {
                       return (
-                          <View key={item.order_code} style={[styles.tableDataRow, { borderBottomColor: idx === 4 || idx === groupedTransactions.length - 1 ? 'transparent' : '#f1f3f4' }]}>
+                          <View key={item.order_code} style={[styles.tableDataRow, { borderBottomColor: idx === 4 || idx === visibleTransactions.length - 1 ? 'transparent' : '#f1f3f4' }]}>
                             {/* 🚀 Tampilkan order_code real dari database */}
                           <Text style={[styles.tdOrderId, { flex: 2.2, color: theme.colors.foreground }]}>
                               {item.order_code || `Order #${idx}`}

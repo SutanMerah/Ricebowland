@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
+import ReceiptModal from '@/components/ui/ReceiptModal';
 
 import { theme } from "@/constants/theme";
 import { spacing, radius } from "@/components/system";
@@ -12,13 +13,17 @@ import { useAuth } from "@/components/system/AuthContext";
 import { apiFetch } from "@/lib/fetch";
 
 export default function CustomerDashboardCombined() {
+  type GroupedItem = { menuId?: number; name: string; price: number; qty: number; subtotal: number };
+  type GroupedOrder = { order_code?: string; id?: number; created_at?: string; status?: string; qr_token?: string; items: GroupedItem[]; totalPrice: number };
   const { user } = useAuth(); // 👈 2. Ambil data user yang sedang aktif login
   const params = useLocalSearchParams();
   
   const [hasOrder, setHasOrder] = useState(false);
-  const [groupedOrders, setGroupedOrders] = useState<any[]>([]); 
+  const [groupedOrders, setGroupedOrders] = useState<GroupedOrder[]>([]); 
   const [loading, setLoading] = useState(false);
   const [menuMap, setMenuMap] = useState<Record<number, { name: string; price: number }>>({});
+  const [selectedOrder, setSelectedOrder] = useState<GroupedOrder | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const formatFigmaDate = (dateString: string) => {
     if (!dateString) return "Hari Ini";
@@ -52,6 +57,7 @@ export default function CustomerDashboardCombined() {
           order_code: item.order_code,  // 🚀 Gunakan order_code real dari database
           created_at: item.created_at,
           status: item.status || "pending",
+          qr_token: item.qr_token,
           items: [],
           totalPrice: 0
         };
@@ -91,8 +97,10 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
         const myOrders = orderList.filter((order: any) => Number(order.user_id) === Number(user.id));
         const filteredOrders = myOrders.filter((order: any) => {
           const status = String(order.status || "").toLowerCase();
-          if (status !== "completed") return true;
-          return isWithinLastDays(order.created_at, 3);
+          if (status === "completed" || status === "success" || status === "cancelled") {
+            return isWithinLastDays(order.created_at, 3);
+          }
+          return true;
         });
 
         if (filteredOrders.length > 0) {
@@ -193,6 +201,11 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
     );
   }
 
+  const openReceipt = (order: GroupedOrder) => {
+    setSelectedOrder(order);
+    setShowReceipt(true);
+  };
+
   return (
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
       {/* HEADER SECTION */}
@@ -275,12 +288,18 @@ const fetchOrdersFromLaravel = async (showSpinner = true) => {
 
               <View style={styles.actions}>
                 <Button title="Pesan Lagi" onPress={() => router.push("/(customer)/menu")} style={{ flex: 1 }} />
+                <Button title="Lihat Struk" onPress={() => openReceipt(order)} style={{ flex: 1 }} />  
                 <Button title="Refresh Status" variant="outline" onPress={fetchOrdersFromLaravel} style={{ flex: 1 }} />
               </View>
             </CardContent>
           </Card>
         ))
       )}
+      <ReceiptModal 
+        visible={showReceipt} 
+        order={selectedOrder} 
+        onClose={() => setShowReceipt(false)} 
+      />
     </ScrollView>
   );
 }

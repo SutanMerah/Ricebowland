@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, useWindowDimensions, Modal, Image, TouchableOpacity, Platform, Pressable } from "react-native";
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -10,6 +12,7 @@ import { spacing } from "@/components/system/spacing";
 import { apiFetch } from "@/lib/fetch";
 
 const orderStatusOptions = [
+  
   { label: "Tertunda", value: "pending" },
   { label: "Diproses", value: "processing" },
   { label: "Selesai", value: "completed" },
@@ -123,6 +126,7 @@ function getStatusStyle(status: string) {
 
 export default function AdminTransactions() {
   const { width } = useWindowDimensions();
+  const router = useRouter();
   const isDesktop = width >= 768;
   const [activeTab, setActiveTab] = useState<"orders" | "payments">("orders");
   const [rawOrders, setRawOrders] = useState<RawOrder[]>([]);
@@ -271,19 +275,26 @@ export default function AdminTransactions() {
     return Object.values(groups).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [rawOrders]);
 
+  const activeGroupedOrders = useMemo(() => {
+    return groupedOrders.filter((order) => {
+      const normalized = String(order.status || "").toLowerCase();
+      return normalized !== "cancelled" && normalized !== "completed" && normalized !== "success";
+    });
+  }, [groupedOrders]);
+
   const ordersSummary = useMemo(() => {
-    const totalOrders = groupedOrders.length;
-    const pending = groupedOrders.filter((order) => order.status?.toLowerCase() === "pending").length;
-    const processing = groupedOrders.filter((order) => order.status?.toLowerCase() === "processing").length;
-    const completed = groupedOrders.filter((order) => order.status?.toLowerCase() === "completed" || order.status?.toLowerCase() === "success").length;
+    const totalOrders = activeGroupedOrders.length;
+    const pending = activeGroupedOrders.filter((order) => order.status?.toLowerCase() === "pending").length;
+    const processing = activeGroupedOrders.filter((order) => order.status?.toLowerCase() === "processing").length;
+    const completed = activeGroupedOrders.filter((order) => order.status?.toLowerCase() === "completed" || order.status?.toLowerCase() === "success").length;
     
-    const totalRevenue = groupedOrders.reduce((sum, order) => {
+    const totalRevenue = activeGroupedOrders.reduce((sum, order) => {
       const orderTotal = order.items.reduce((s, i) => s + (i.price * i.qty), 0);
       return sum + orderTotal;
     }, 0);
 
     return { totalOrders, pending, processing, completed, totalRevenue };
-  }, [groupedOrders]);
+  }, [activeGroupedOrders]);
 
   const paymentsSummary = useMemo(() => {
     const totalPending = invoices.length;
@@ -449,12 +460,13 @@ const approveInvoice = (invoiceId: number) => {
   }
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={[styles.content, !isDesktop && { paddingHorizontal: spacing.lg }]}>
-      <View style={[styles.headerRow, isDesktop && styles.headerRowDesktop]}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Manajemen Transaksi</Text>
-          <Text style={styles.subtitle}>Kelola pesanan, perbarui status, dan tinjau informasi akun khusus yang aktif.</Text>
-        </View>
+    <View style={styles.screenContainer}>
+      <ScrollView style={styles.root} contentContainerStyle={[styles.content, !isDesktop && { paddingHorizontal: spacing.lg }]}>
+        <View style={[styles.headerRow, isDesktop && styles.headerRowDesktop]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Manajemen Transaksi</Text>
+            <Text style={styles.subtitle}>Kelola pesanan, perbarui status, dan tinjau informasi akun khusus yang aktif.</Text>
+          </View>
 
         {isDesktop && (
           <View style={styles.tabContainerDesktop}>
@@ -535,15 +547,15 @@ const approveInvoice = (invoiceId: number) => {
           <View style={[styles.mainSection, !isDesktop && { flexDirection: 'column' }]}>
             {/* KOLOM KIRI: ORDER CARDS LIST */}
             <View style={[styles.leftColumn, !isDesktop && styles.leftColumnMobile]}>
-              {groupedOrders.length === 0 ? (
-                <Card style={styles.emptyCard}>
-                  <CardContent>
-                    <Text style={styles.emptyTitle}>Tidak ada pesanan yang ditemukan</Text>
-                    <Text style={styles.emptySubtitle}>Daftar pesanan Anda masih kosong. Pesanan baru akan muncul di sini seiring masuk.</Text>
-                  </CardContent>
-                </Card>
-              ) : (
-                groupedOrders.map((order) => {
+{activeGroupedOrders.length === 0 ? (
+                    <Card style={styles.emptyCard}>
+                      <CardContent>
+                        <Text style={styles.emptyTitle}>Tidak ada pesanan yang ditemukan</Text>
+                        <Text style={styles.emptySubtitle}>Daftar pesanan Anda masih kosong. Pesanan baru akan muncul di sini seiring masuk.</Text>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    activeGroupedOrders.map((order) => {
                   const itemText = order.items.map((item) => `${item.qty}x ${item.name}`).join(", ");
                   const currentStatus = selectedStatus[order.id.toString()] || order.status;
                   const statusStyle = getStatusStyle(order.status);
@@ -658,13 +670,13 @@ const approveInvoice = (invoiceId: number) => {
                 <CardContent style={{ padding: 20 }}>
                   <View style={styles.recentHeader}>
                     <Text style={styles.sectionTitle}>Daftar Orderan</Text>
-                    <Text style={styles.recentMeta}>{groupedOrders.length} total</Text>
+                    <Text style={styles.recentMeta}>{activeGroupedOrders.length} total</Text>
                   </View>
 
-                  {groupedOrders.length === 0 ? (
+                  {activeGroupedOrders.length === 0 ? (
                     <Text style={styles.emptyMessageSmall}>Tidak ada transaksi terverifikasi</Text>
                   ) : (
-                    groupedOrders.slice(0, 10).map((item) => {
+                    activeGroupedOrders.slice(0, 10).map((item) => {
                       const statusStyle = getStatusStyle(item.status);
                       const itemTotal = item.items.reduce((sum, i) => sum + (i.price * i.qty), 0);
                       return (
@@ -984,12 +996,23 @@ const approveInvoice = (invoiceId: number) => {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+
+      </ScrollView>
+
+      <TouchableOpacity
+        style={styles.fabButton}
+        onPress={() => router.push('/(admin)/scanner')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="qr-code-outline" size={26} color="#fff" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
 
 const styles = StyleSheet.create({
+  screenContainer: { flex: 1 },
   root: { ...(Platform.OS === 'web' ? { flex: 1 } : {}), backgroundColor: theme.colors.background },
   content: { padding: spacing.xl, width: "100%", maxWidth: 1280, alignSelf: "center" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.background },
@@ -1141,6 +1164,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 8,
+  },
+  fabButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
 
 confirmBox: {

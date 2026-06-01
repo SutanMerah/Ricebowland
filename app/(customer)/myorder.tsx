@@ -46,7 +46,17 @@ export default function MyOrders() {
     return Object.values(groups).reverse();
   };
 
-  const fetchCompletedOrders = async (showSpinner = true) => {
+  const isWithinLastDays = (dateString: string, days: number) => {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return false;
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    return diffMs >= 0 && diffMs <= days * 24 * 60 * 60 * 1000;
+  };
+
+  const fetchOrderHistory = async (showSpinner = true) => {
     if (!user?.id) {
       if (showSpinner) {
         setLoading(false);
@@ -62,13 +72,21 @@ export default function MyOrders() {
         method: "GET",
       });
       const orderList = Array.isArray(result) ? result : result.data || [];
-      const completedOrders = orderList.filter((order: any) => {
-        return Number(order.user_id) === Number(user.id) && String(order.status || "").toLowerCase() === "completed";
+      const historyOrders = orderList.filter((order: any) => {
+        const status = String(order.status || "").toLowerCase();
+        if (Number(order.user_id) !== Number(user.id)) return false;
+        if (status === "completed" || status === "success") {
+          return !isWithinLastDays(order.created_at, 3);
+        }
+        if (status === "cancelled") {
+          return !isWithinLastDays(order.created_at, 3);
+        }
+        return false;
       });
 
-      setOrders(groupOrders(completedOrders));
+      setOrders(groupOrders(historyOrders));
     } catch (error) {
-      console.error("Gagal memuat pesanan selesai:", error);
+      console.error("Gagal memuat pesanan historis:", error);
       setOrders([]);
     } finally {
       if (showSpinner) {
@@ -78,10 +96,10 @@ export default function MyOrders() {
   };
 
   useEffect(() => {
-    fetchCompletedOrders(true);
+    fetchOrderHistory(true);
 
     const interval = setInterval(() => {
-      fetchCompletedOrders(false);
+      fetchOrderHistory(false);
     }, 30000);
 
     return () => clearInterval(interval);
@@ -99,8 +117,8 @@ export default function MyOrders() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.colors.foreground }]}>Pesanan Saya</Text>
-        <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>Menampilkan seluruh pesanan yang sudah selesai.</Text>
+        <Text style={[styles.title, { color: theme.colors.foreground }]}>Riwayat Pesanan</Text>
+        <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>Menampilkan pesanan selesai dan batal yang sudah keluar dari dashboard utama.</Text>
       </View>
 
       {orders.length === 0 ? (

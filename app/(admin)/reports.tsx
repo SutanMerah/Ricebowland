@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, Modal, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions, Modal, Pressable, TouchableOpacity } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/constants/theme";
 import { spacing } from "@/components/system/spacing";
 import { apiFetch } from "@/lib/fetch";
+import ReceiptModal from "@/components/ui/ReceiptModal";
 
 interface RawOrderItem {
   id: number;
@@ -23,6 +24,15 @@ interface RawOrderItem {
   };
 }
 
+interface RawReceiptItem {
+  id: number;
+  receipt_code: string;
+  customer_name: string | null;
+  total_price?: number | string;
+  created_at: string;
+  items_detail?: any;
+}
+
 function formatCurrency(value: number) {
   return `Rp ${value.toLocaleString("id-ID")}`;
 }
@@ -37,29 +47,34 @@ export default function AdminReports() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
   const [orders, setOrders] = useState<RawOrderItem[]>([]);
+  const [receipts, setReceipts] = useState<RawReceiptItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedArchivedReceipt, setSelectedArchivedReceipt] = useState<any | null>(null);
+  const [showArchivedReceipt, setShowArchivedReceipt] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [customAlertVisible, setCustomAlertVisible] = useState(false);
   const [customAlertMessage, setCustomAlertMessage] = useState("");
 
   useEffect(() => {
-    async function loadOrders() {
+    async function loadData() {
       try {
         setIsLoading(true);
-        const data = await apiFetch("/orders");
-        const orderList = Array.isArray(data) ? data : data.data || [];
+        const [ordersRes, receiptsRes] = await Promise.all([apiFetch("/orders"), apiFetch("/receipts")]);
+        const orderList = Array.isArray(ordersRes) ? ordersRes : ordersRes.data || [];
+        const receiptList = Array.isArray(receiptsRes) ? receiptsRes : receiptsRes.data || [];
         setOrders(orderList);
+        setReceipts(receiptList);
       } catch (error) {
         console.error("Gagal memuat data laporan bisnis:", error);
-        setCustomAlertMessage("Gagal mengambil data transaksi dari server backend Laravel.");
+        setCustomAlertMessage("Gagal mengambil data transaksi atau receipts dari server backend Laravel.");
         setCustomAlertVisible(true);
       } finally {
         setIsLoading(false);
       }
     }
-    loadOrders();
+    loadData();
   }, []);
 
   // Memfilter order berdasarkan jangkauan tanggal input user
@@ -73,6 +88,45 @@ export default function AdminReports() {
       return true;
     });
   }, [orders, startDate, endDate]);
+
+  const filteredReceipts = useMemo(() => {
+    return receipts.filter((receipt) => {
+      const receiptDateStr = getCleanDateString(receipt.created_at);
+      if (!receiptDateStr) return true;
+
+      if (startDate && receiptDateStr < startDate) return false;
+      if (endDate && receiptDateStr > endDate) return false;
+      return true;
+    });
+  }, [receipts, startDate, endDate]);
+
+  function openArchivedReceipt(receipt: RawReceiptItem) {
+    let items: any[] = [];
+    if (receipt.items_detail) {
+      if (typeof receipt.items_detail === "string") {
+        try {
+          items = JSON.parse(receipt.items_detail);
+        } catch (e) {
+          items = [];
+        }
+      } else if (Array.isArray(receipt.items_detail)) {
+        items = receipt.items_detail;
+      } else {
+        items = [receipt.items_detail];
+      }
+    }
+
+    const modalData = {
+      order_code: receipt.receipt_code,
+      created_at: receipt.created_at,
+      status: "completed",
+      totalPrice: Number(receipt.total_price || 0),
+      items,
+    };
+
+    setSelectedArchivedReceipt(modalData);
+    setShowArchivedReceipt(true);
+  }
 
   // Melakukan kalkulasi metrik bisnis secara dinamis berdasarkan data terfilter
   const metrics = useMemo(() => {
@@ -199,6 +253,23 @@ export default function AdminReports() {
               )}
             </CardContent>
           </Card>
+
+          <Card style={styles.reportSummaryCard}>
+            <CardContent style={{ padding: 20 }}>
+              <Text style={styles.sectionHeading}>Daftar Receipts</Text>
+              {filteredReceipts.length === 0 ? (
+                <Text style={styles.summaryText}>Tidak ada receipts untuk periode ini.</Text>
+              ) : (
+                filteredReceipts.map((r) => (
+                  <TouchableOpacity key={r.id} style={styles.receiptRow} onPress={() => openArchivedReceipt(r)}>
+                    <Text style={styles.receiptCode}>{r.receipt_code} — {r.customer_name || 'Tamu'}</Text>
+                    <Text style={styles.receiptMeta}>{formatCurrency(Number(r.total_price || 0))} • {getCleanDateString(r.created_at)}</Text>
+                    <Text style={styles.viewReceiptText}>Lihat Struk ❯</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </>
       ) : (
         <Card style={styles.sampleCard}>
@@ -230,6 +301,12 @@ export default function AdminReports() {
           </View>
         </Pressable>
       </Modal>
+
+      <ReceiptModal
+        order={selectedArchivedReceipt}
+        visible={showArchivedReceipt}
+        onClose={() => setShowArchivedReceipt(false)}
+      />
     </ScrollView>
   );
 }
@@ -257,6 +334,10 @@ const styles = StyleSheet.create({
   topItemRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   topItemName: { fontWeight: "700", color: theme.colors.foreground },
   topItemRevenue: { color: theme.colors.primary, fontWeight: "600" },
+  receiptRow: { borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingVertical: 10 },
+  receiptCode: { fontWeight: "700", color: theme.colors.foreground },
+  receiptMeta: { color: theme.colors.mutedForeground, marginTop: 6 },
+  viewReceiptText: { color: theme.colors.primary, marginTop: 6, fontWeight: "600" },
 
   // CUSTOM ALERT STYLES
   customAlertOverlay: {

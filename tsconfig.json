@@ -3,9 +3,12 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./*"]
     },
     "ignoreDeprecations": "6.0"
   }
+  ,
+  "exclude": ["node_modules", "**/node_modules/*"]
 }
