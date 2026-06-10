@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Image } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/components/system/AuthContext";
+
+const logoSrc = require("../../assets/icon.jpg");
 
 interface CustomerNavbarProps {
   unreadCount?: number;
@@ -44,7 +46,7 @@ const handleLogout = async () => {
           style={styles.logo}
         >
           <View style={styles.logoBox}>
-            <Icon name="restaurant" size={18} color={theme.colors.primaryForeground} />
+            <Image source={logoSrc} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.brand}>
             <Text style={styles.brandAccent}>Ricebow</Text>land
@@ -165,6 +167,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     padding: spacing.sm,
     borderRadius: radius.md,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoImage: {
+    width: 28,
+    height: 28,
   },
   brand: {
     fontSize: 20,

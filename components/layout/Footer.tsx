@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { apiFetch } from "@/lib/fetch";
+
+const logoSrc = require("../../assets/icon.jpg");
 
 interface Contact {
   id: number;
@@ -41,7 +43,7 @@ export function Footer() {
           <View style={styles.col}>
             <View style={styles.brandRow}>
               <View style={styles.logoBox}>
-                <Icon name="restaurant" size={20} color="#fff" />
+                <Image source={logoSrc} style={styles.logoImage} resizeMode="contain" />
               </View>
               <Text style={styles.brandText}>
                 <Text style={styles.brandAccent}>Ricebow</Text>land
@@ -167,7 +169,15 @@ const styles = StyleSheet.create({
   logoBox: {
     backgroundColor: "#F97316",
     padding: 6,
-    borderRadius: 8,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+
+  logoImage: {
+    width: 24,
+    height: 24,
   },
 
   brandText: {

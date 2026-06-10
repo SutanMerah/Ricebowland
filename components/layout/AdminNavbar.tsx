@@ -1,10 +1,12 @@
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Image } from "react-native";
 import { router, usePathname } from "expo-router";
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/components/system/AuthContext";
+
+const logoSrc = require("../../assets/icon.jpg");
 
 interface AdminNavbarProps {
   unreadCount?: number;
@@ -48,8 +50,8 @@ export default function AdminNavbar({ unreadCount = 0 }: AdminNavbarProps) {
         <View style={styles.leftSection}>
           {/* LOGO GROUP */}
           <Pressable onPress={() => router.push("/(admin)/dashboard")} style={styles.logoGroup}>
-            <View style={[styles.logoIcon, { backgroundColor: theme.colors.primary }]}>
-              <Icon name="grid" color={theme.colors.primaryForeground} size={18} />
+            <View style={styles.logoIcon}>
+              <Image source={logoSrc} style={styles.logoImage} resizeMode="contain" />
             </View>
             <View style={styles.logoTextWrapper}>
               <Text style={[styles.brandTitle, { color: "#111111" }]}>Ricebowland</Text>
@@ -163,11 +165,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: theme.colors.primary,
+    overflow: "hidden",
+  },
+  logoImage: {
+    width: 30,
+    height: 30,
   },
   logoTextWrapper: {
     flexDirection: "row",

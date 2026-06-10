@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   Modal,
   Pressable,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +18,8 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
 import { Icon } from "@/components/ui/Icon";
+
+const iconSrc = require("../assets/icon.jpg");
 
 import {
   Card,
@@ -154,10 +157,10 @@ export default function Register() {
       style={styles.container}
     >
       <View style={styles.bgLayer}>
-        <Icon name="restaurant" size={120} color="#F5E8DF" style={styles.bg1} />
-        <Icon name="restaurant" size={120} color="#F5E8DF" style={styles.bg2} />
-        <Icon name="restaurant" size={90} color="#F5E8DF" style={styles.bg3} />
-        <Icon name="restaurant" size={90} color="#F5E8DF" style={styles.bg4} />
+        <Image source={iconSrc} style={[styles.bgIcon, styles.bg1]} resizeMode="contain" />
+        <Image source={iconSrc} style={[styles.bgIcon, styles.bg2]} resizeMode="contain" />
+        <Image source={iconSrc} style={[styles.bgIcon, styles.bg3]} resizeMode="contain" />
+        <Image source={iconSrc} style={[styles.bgIcon, styles.bg4]} resizeMode="contain" />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -165,11 +168,7 @@ export default function Register() {
           <CardHeader style={styles.header}>
             <View style={styles.logoWrap}>
               <View style={[styles.logoBox, { backgroundColor: theme.colors.primary }]}>
-                <Icon
-                  name="restaurant"
-                  size={32}
-                  color={theme.colors.primaryForeground}
-                />
+                <Image source={iconSrc} style={styles.logoImage} resizeMode="contain" />
               </View>
             </View>
 
@@ -302,6 +301,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
   },
+  bgIcon: {
+    width: 120,
+    height: 120,
+    position: "absolute",
+    opacity: 0.5,
+  },
   bg1: { position: "absolute", top: 80, left: -20, opacity: 0.5, transform: [{ rotate: "15deg" }] },
   bg2: { position: "absolute", bottom: 80, right: -20, opacity: 0.5, transform: [{ rotate: "-15deg" }] },
   bg3: { position: "absolute", top: "50%", left: "10%", opacity: 0.3, transform: [{ rotate: "-45deg" }] },
@@ -327,6 +332,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  logoImage: {
+    width: 40,
+    height: 40,
   },
   mainTitle: {
     ...typography.h2,
