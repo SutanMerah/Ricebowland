@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   logoBox: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "transparent",
     padding: spacing.sm,
     borderRadius: radius.md,
     justifyContent: "center",

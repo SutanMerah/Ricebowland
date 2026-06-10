@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "transparent",
     overflow: "hidden",
   },
   logoImage: {

@@ -17,6 +17,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.sutanmerah.Ricebowland",
+      "versionCode": 1,
       "intentFilters": [
         {
           "action": "VIEW",

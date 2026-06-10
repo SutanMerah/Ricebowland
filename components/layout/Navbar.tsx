@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Image } from "react-native";
 import { Link, router } from "expo-router";
-import { UtensilsCrossed, Menu, X } from "lucide-react-native";
+import { Menu, X } from "lucide-react-native";
 
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/components/system/AuthContext";
+
+const logoSrc = require("../../assets/icon.jpg");
 
 // Import scrollRegistry dari file landing page
 import { scrollRegistry } from "app/(public)/landing"; 
@@ -50,12 +52,9 @@ export default function Navbar() {
         <View style={styles.row}>
           
           {/* LOGO - Sekarang memicu scroll ke 'home' (paling atas) */}
-          <TouchableOpacity style={styles.logo} onPress={() => navigateToSection("home")}>
+          <TouchableOpacity style={styles.logo} onPress={() => navigateToSection("home") }>
             <View style={styles.logoBox}>
-              <UtensilsCrossed
-                size={18}
-                color={theme.colors.primaryForeground}
-              />
+              <Image source={logoSrc} style={styles.logoImage} resizeMode="contain" />
             </View>
             <Text style={styles.brand}>
               <Text style={styles.brandAccent}>Ricebow</Text>land
@@ -156,9 +155,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   logoBox: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "transparent",
     padding: spacing.sm,
     borderRadius: radius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  logoImage: {
+    width: 24,
+    height: 24,
   },
   brand: {
     fontSize: 20,
